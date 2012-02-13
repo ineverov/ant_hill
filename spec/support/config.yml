@@ -1,0 +1,47 @@
+#Base dir of project
+basedir: /export/web/ant_hill
+#AntHillExtension libriries
+lib_path: spec/support/ant_hill_libs.rb
+
+#Change times
+change_a_time: 10
+change_b_time: 10
+
+# Time to sleep before next request of ant
+sleep_interval: 1
+
+types:
+  old_suite:
+    ant_colony_finder_class: AntHill::OldSuiteFinder
+    matcher_class: AntHill::DefaultMatcher
+    creep_setupper_class: AntHill::CnuSetupper
+    ant_runner_class: AntHill::OldSuiteRunner
+
+  new_suite:
+    ant_colony_finder_class: AntHill::NewSuiteFinder
+    matcher_class: AntHill::DefaultMatcher
+    creep_setupper_class: AntHill::CnuSetupper
+    runner_class: AntHill::NewSuiteRunner
+
+default_type: old_suite
+
+
+#Test nodes
+
+hills:
+  -
+    name: one
+    host: ivan.qa.cashnetusa.com
+    login: cnuapp
+  -
+    name: two
+    host: sel01.qa.cashnetusa.com
+    login: cnuapp
+  -
+    name: three
+    host: sel02.qa.cashnetusa.com
+    login: cnuapp
+  -
+    name: four
+    host: sel03.qa.cashnetusa.com
+    login: cnuapp
