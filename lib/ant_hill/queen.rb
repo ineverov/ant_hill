@@ -9,7 +9,7 @@ module AntHill
 
     def service(cfg={})
       create_colony(cfg)
-      spawn_creeps(@config[:hills])
+      spawn_creeps(@config[:creeps])
     end
 
     def create_colony(params={})
