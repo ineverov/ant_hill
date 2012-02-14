@@ -66,6 +66,19 @@ module AntHill
         DRb.start_service
         queen = DRbObject.new nil, "druby://localhost:6666"
       end
+
+      def create_colony(args)
+        drb_queen.create_colony parse_args(args)
+      end
+
+      def parse_args(args)
+        result = {}
+        args.each do |arg|
+          pair = arg.split("=")
+          result[pair[0]]=pair[1]
+        end
+        result
+      end
     end
   end
 end
