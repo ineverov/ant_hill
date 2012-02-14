@@ -8,7 +8,7 @@ module AntHill
     
     def require_ant
       while Queen.locked?
-        sleep 1
+        sleep rand
       end
       ant = @queen.find_ant(@current_configuration)
     end

@@ -1,6 +1,7 @@
+require 'drb'
+
 module AntHill
   class Queen
-
     def initialize(config = Configuration.config)
       @config = config
       @ants = []
@@ -27,6 +28,9 @@ module AntHill
           c.service
         }
       end
+      @threads << Thread.new{
+        DRb.start_service "druby://localhost:6666", self
+      }
       @threads.each{|t| t.join}
     end
 
@@ -34,6 +38,7 @@ module AntHill
       @lock = true
       ants = prioritized_ants(params)
       winner = ants.pop
+      puts ants.size
       @lock = false
       winner
     end
@@ -54,11 +59,12 @@ module AntHill
       end
 
       def queen
-        @@queen ||= drb_queen || self.new
+        @@queen ||= self.new
       end
 
       def drb_queen
-
+        DRb.start_service
+        queen = DRbObject.new nil, "druby://localhost:6666"
       end
     end
   end
