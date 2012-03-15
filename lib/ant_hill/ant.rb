@@ -1,6 +1,6 @@
 module AntHill
   class Ant
-    attr_reader :config, :type, :params
+    attr_reader :config, :type, :params, :name
     def initialize(name, colony,  params={}, config=Configuration.config)
       @name = name
 
@@ -18,6 +18,10 @@ module AntHill
       @params.all? do |param,value|
         param_matches?(param, params[param])
       end
+    end
+
+    def to_s
+      params.inspect
     end
 
     def param_matches?(param, value)

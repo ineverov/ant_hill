@@ -1,5 +1,8 @@
 require 'yaml'
+require 'logger'
+require 'fileutils'
 require 'ruby-debug'
+
 def require_ant_hill(file)
   require "ant_hill/#{file}"
 end
