@@ -70,19 +70,19 @@ module AntHill
         @@queen ||= self.new
       end
 
-      def drb_queen
+      def drb_queen(host)
         DRb.start_service
-        queen = DRbObject.new nil, "druby://localhost:6666"
+        queen = DRbObject.new nil, "druby://#{host}:6666"
       rescue Exception => e
         puts e
       end
 
-      def create_colony(args)
-        drb_queen.create_colony parse_args(args)
+      def create_colony(args, host)
+        drb_queen(host).create_colony parse_args(args)
       end
 
-      def creeps
-        drb_queen.creeps
+      def creeps(host = 'localhost')
+        drb_queen(host).creeps
       end
 
       def parse_args(args)
