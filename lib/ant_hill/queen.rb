@@ -3,14 +3,23 @@ require 'drb'
 module AntHill
   class Queen
     attr_reader :creeps
+
+    DRB_HOST = '0.0.0.0'
+    DRB_PORT = 6666
+
     def initialize(config = Configuration.config)
       @config = config
       @ants = []
+      @colony_queue = []
       trap("INT") do
         puts "Terminating... Pls wait"
         @creeps.each{|c|  c.kill_ssh  }
         @threads.each{|th| th.exit  }
       end
+    end
+
+    def size
+      @ants.size
     end
 
     def service(cfg={})
@@ -20,8 +29,7 @@ module AntHill
 
     def create_colony(params={})
       type = params['type']
-      colony = AntColony.new(params, type)
-      @ants += colony.get_ants
+      @colony_queue << AntColony.new(params, type)
     end
 
     def spawn_creeps(creeps)
@@ -38,7 +46,18 @@ module AntHill
       end
       @threads << Thread.new{
         Thread.current["name"]="main"
-        DRb.start_service "druby://localhost:6666", self
+        DRb.start_service "druby://#{DRB_HOST}:#{DRB_PORT}", self
+      }
+      @threads << Thread.new{
+        Thread.current["name"]="colony queue processor"
+        while true do
+          colony = @colony_queue.pop
+          if colony
+            new_ants = colony.get_ants
+            @ants += new_ants
+          end
+          sleep 1
+        end
       }
       @threads.each{|t| t.join}
     end

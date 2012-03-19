@@ -8,6 +8,7 @@ task :monitor do
   while true
     sleep 2
     print "\e[2J\e[f"
+    puts "Ants left: #{AntHill::Queen.drb_queen.size}"
     AntHill::Queen.creeps.each{|creep|
       puts creep.to_s
     }
