@@ -6,10 +6,11 @@ task :add_colony do
 end
 
 task :monitor do
+  host = ENV['drb_host'] || 'localhost'
   while true
     sleep 2
     print "\e[2J\e[f"
-    host = ENV['drb_host'] || 'localhost'
+    puts "Ants left: #{AntHill::Queen.drb_queen(host).size}"
     AntHill::Queen.creeps(host).each{|creep|
       puts creep.to_s
     }
