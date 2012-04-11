@@ -128,9 +128,11 @@ module AntHill
     end
 
     def get_ssh
+      @ssh_pool.delete_if{ |ssh| ssh.closed? }
       ssh = @ssh_pool.find{|ssh| !ssh.busy?}
       return ssh if ssh
       ssh =  Net::SSH.start(host,user, {:password => password})
+      ssh.send_global_request("keep-alive@openssh.com")
       @ssh_pool << ssh
       ssh
     end
