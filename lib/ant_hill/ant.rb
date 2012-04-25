@@ -1,42 +1,38 @@
 module AntHill
   class Ant
-    attr_reader :config, :type, :params, :name
-    def initialize(name, colony,  params={}, config=Configuration.config)
-      @name = name
-
+    attr_reader :type, :params, :colony, :status
+    def initialize(params, colony, config = Configuration.config)
       @colony = colony
 
       @params = colony.params.merge(params)
 
-      @config = config
+      @status = :not_started
 
-      @type = colony.colony_type
-      @priority = @config.init_time - Time.now
-    end
-
-    def matches?(params)
-      @params.all? do |param,value|
-        param_matches?(param, params[param])
-      end
+      @type = colony.type
+      @priority = config.init_time - Time.now
     end
 
     def to_s
       params.inspect
     end
 
-    def param_matches?(param, value)
-      matcher = config.matcher(@type)
-      matcher.match(param, @params[param], value)
-    end
-
-    def priority(params, setupper = @config.setupper)
+    def priority(creep_params)
       priority = @priority
-      @params.each{|param,value|
-        unless param_matches?(param, params[param])
-          priority -= setupper.change_time_for_param(param)
+      creep_modifier = colony.creep_modifier_class.new
+      params.each{|param,value|
+        unless value == creep_params[param]
+          priority -= creep_modifier.change_time_for_param(param)
         end
       }
       priority
+    end
+
+    def change_status(status)
+      @status = status
+    end
+
+    def finished?
+      status == :finished
     end
   end
 end

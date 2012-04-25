@@ -10,6 +10,7 @@ module AntHill
       @current_ant = nil
       @processed = 0
       @start_time = Time.now
+      @modifier = nil
     end
     
     def require_ant
@@ -20,12 +21,14 @@ module AntHill
     end
 
     def setup_and_process_ant(ant)
-      setup_params = find_diff(ant)
       @current_ant = ant
-      begin 
-        setup(setup_params, ant.type)
-        run(ant)
-      #FIXME
+      begin
+        @modifier = ant.ant_colony.creep_modifier_class.new(self)
+        @modifier.setup(ant, @current_configuration)
+
+        @curent_configuration = ant.params
+
+        @modifier.run(ant)
       rescue Exception => e
         change_status(:error)
         logger.error e
@@ -34,17 +37,8 @@ module AntHill
         @current_ant = nil
       end
     end
-
-    def find_diff(ant)
-      diff = {}
-      config = ant.params
-      type = ant.type
-      matcher = @config.matcher(type)
-
-      config.each_key{|k|
-        diff[k] = config[k] unless matcher.match(k, config[k], @current_configuration[k])
-      }
-      diff
+    def logger
+      Log.logger_for :creep, host
     end
 
     def setup(params, type)
@@ -70,13 +64,6 @@ module AntHill
       @host = @hill_cfg['host']
       @user = @hill_cfg['user']
       @password = @hill_cfg['password']
-      start_logger(@hill_cfg['log_path'])
-    end
-
-    def start_logger(path="/var/log/ant_hill")
-      filename=path+"/#{@host}.log"
-      FileUtils.mkdir_p path unless File.exists?(path)
-      @logger = Logger.new(path+"/#{@host}.log")
     end
 
     def exec!(command, timeout=nil)

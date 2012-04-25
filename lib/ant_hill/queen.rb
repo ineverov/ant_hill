@@ -23,43 +23,59 @@ module AntHill
     end
 
     def service(cfg={})
-      create_colony(cfg)
-      spawn_creeps(@config[:creeps])
+      @threads = []
+      spawn_creeps(@config.creeps)
+      spawn_drb_queen
+      spawn_colonies_processor
+      @threads.each{|t| t.join}
     end
 
     def create_colony(params={})
       type = params['type']
-      @colony_queue << AntColony.new(params, type)
+      colony = @config.ant_colony_class(type)
+      if colony
+        @colony_queue << colony.new(params)
+      else
+        logger.error "Couldn't process request #{params} because of previous errors"
+      end
     end
 
     def spawn_creeps(creeps)
-      @threads = []
       @creeps = []
-      for creep in creeps
+      creeps.each do |creep_config|
         @threads << Thread.new{
           c = Creep.new
           @creeps << c
-          c.configure(creep)
+          c.configure(creep_config)
           Thread.current["name"]=c.to_s
           c.service
         }
       end
+    end
+
+    def spawn_drb_queen
       @threads << Thread.new{
         Thread.current["name"]="main"
         DRb.start_service "druby://#{DRB_HOST}:#{DRB_PORT}", self
       }
+    end
+
+    def spawn_colonies_processor
       @threads << Thread.new{
         Thread.current["name"]="colony queue processor"
         while true do
           colony = @colony_queue.pop
           if colony
             new_ants = colony.get_ants
-            @ants += new_ants
+            add_ants(new_ants)
           end
           sleep 1
         end
       }
-      @threads.each{|t| t.join}
+    end
+
+    def add_ants(ants)
+      @ants += ants
     end
 
     def find_ant(params)
@@ -78,6 +94,11 @@ module AntHill
 
     def locked?
       @lock
+    end
+
+
+    def logger
+      Log.logger_for(:queen)
     end
 
     class << self

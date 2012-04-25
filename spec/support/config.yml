@@ -1,25 +1,25 @@
 #Base dir of project
 basedir: /export/web/ant_hill
+
 #AntHillExtension libriries
 lib_path: spec/support/ant_hill_libs.rb
 
 # Time to sleep before next request of ant
 sleep_interval: 1
 
+log_dir: /tmp/ant_hill
+log_level: 
+
 types:
-  old_suite:
-    ant_colony_finder_class: AntHill::OldSuiteFinder
-    matcher_class: AntHill::DefaultMatcher
-    creep_setupper_class: AntHill::TestSetupper
-    ant_runner_class: AntHill::OldSuiteRunner
+  first:
+    ant_colony_class: AntHill::FirstAntColony
+    creep_modifier_class: AntHill::FirstCreepModifier
 
-  new_suite:
-    ant_colony_finder_class: AntHill::NewSuiteFinder
-    matcher_class: AntHill::DefaultMatcher
-    creep_setupper_class: AntHill::TestSetupper
-    runner_class: AntHill::NewSuiteRunner
+  second:
+    ant_colony_class: AntHill::SecondAntColony
+    creep_modifier_class: AntHill::SecondCreepModifier
 
-default_type: old_suite
+default_type: first
 
 
 #Test nodes
