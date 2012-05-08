@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 require 'rubygems'
 require 'ant_hill'
-AntHill::Configuration.config(ARGV[0])
+#AntHill::Configuration.config
 AntHill::Queen.queen.service
 

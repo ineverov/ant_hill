@@ -56,15 +56,28 @@ module AntHill
 
     def get_class_by_type_and_object(type, object)
       if @configuration['types'][type] && klass = @configuration['types'][type][object]
-        if !klass.nil? && Object.const_defined?(klass)
-          return Kernel.const_get(klass)
-        else
-          Log.logger_for(:configuration).error("No such class defined: #{klass}")
-        end
+        return get_const_by_name(klass)
       else
         Log.logger_for(:configuration).error("No class configuration defined for #{object} and type #{type}")
       end
       return nil
+    end
+
+    def get_const_by_name(name)
+      consts = name.split("::")
+      obj = Object
+      begin
+        consts.each{|const| 
+          obj = obj.const_get(const)
+        }
+      rescue
+        Log.logger_for(:configuration).error("No such class defined: #{klass}")
+      end
+      return obj
+    end
+
+    def get_connection_class
+      get_const_by_name(connection_class)
     end
 
     def [](key)
@@ -72,17 +85,18 @@ module AntHill
     end
 
     def method_missing(method, *args)
-      if @configuration[method.to_s]
-        @configuration[method.to_s]
+      meth = method.to_s.gsub(/^get_/, "")
+      if @configuration[meth]
+        @configuration[meth]
       else
-        STDERR.puts "No key #{method} defined in #{@config_file}"
+        STDERR.puts "No key #{meth} defined in #{@config_file}"
       end
     end
 
     class << self
       def config(filename = ARGV[0])
         return @@config if defined?(@@config)
-        @@config =  self.new(filename)
+        @@config =  self.new
         @@config.parse_yaml(filename)
         @@config.validate
         @@config.require_libs

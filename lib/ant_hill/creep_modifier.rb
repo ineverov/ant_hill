@@ -19,6 +19,10 @@ module AntHill
     end
 
     # Can be redefined in child class
+    def get_setup_time(ant, params)
+      0
+    end
+
     def setup(ant)
     end
 

@@ -17,6 +17,8 @@ require_ant_hill 'ant_colony'
 #require_ant_hill 'ant_runner'
 #require_ant_hill 'matcher'
 require_ant_hill 'creep_modifier'
+require_ant_hill 'connection_pool'
+require_ant_hill 'connections/ssh_connection'
 require_ant_hill 'version'
 require_ant_hill 'log'
 

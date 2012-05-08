@@ -7,7 +7,7 @@ module AntHill
         verbose = config.log_level
         path = config.log_dir
         FileUtils.mkdir_p path unless File.exists?(path)
-        @@logger[name] = Logger.new(path+"/#{name}.log")
+        @@loggers[name] = Logger.new(path+"/#{name}.log")
       end
     end
 

@@ -10,20 +10,22 @@ module AntHill
       @current_ant = nil
       @processed = 0
       @passed = 0
+      @active = true
       @start_time = Time.now
     end
-    
+   
     def require_ant
       while Queen.locked?
         sleep rand
       end
+
       ant = @queen.find_ant(@current_params)
     end
 
     def setup_and_process_ant(ant)
       @current_ant = ant
       begin
-        modifier = ant.ant_colony.creep_modifier_class.new(self)
+        modifier = ant.colony.creep_modifier_class.new(self)
         ok = setup(modifier, ant)
         if ok
           @current_params = ant.params
@@ -46,7 +48,7 @@ module AntHill
       timeout = modifier.get_setup_time(ant, @current_params)
       change_status(:setup)
       ok = timeout_execution(timeout, "setup #{ant.params.inspect}") do
-        modifier.setup(ant, @current_params)
+        modifier.setup(ant)
       end
       ok &&= modifier.check(ant)
       ok
@@ -74,16 +76,17 @@ module AntHill
 
     def exec!(command, timeout=nil)
       logger.info("Executing: #{command}")
+      stderr,stdout = '', ''
       stderr, stdout = timeout_execution(timeout, "exec!(#{command})") do
         connection_pool.execute(command)
       end
-      logger.error("STDERR: #{stderr}") unless stderr.empty?
+      logger.error("STDERR: #{stderr}") 
       logger.info("STDOUT: #{stdout}")
       stdout
     end
 
     def timeout_execution(timeout=nil, process = nil)
-      result = nil
+      result = ['','']
       begin
         if timeout
           Timeout::timeout( timeout ) do
@@ -112,8 +115,10 @@ module AntHill
       while true
         ant = self.require_ant
         if ant && active?
+          logger.info("Setupping and processing ant")
           setup_and_process_ant(ant)
         else
+          logger.info("Waiting for more ants or release")
           change_status(:wait) 
           sleep @config.sleep_interval
         end

@@ -67,7 +67,8 @@ module AntHill
           colony = @colony_queue.pop
           if colony
             new_ants = colony.get_ants
-            add_ants(new_ants)
+            @ants += new_ants
+            #add_ants(new_ants)
           end
           sleep 1
         end

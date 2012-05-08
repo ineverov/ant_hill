@@ -47,6 +47,10 @@ module AntHill
       []
     end
     
+    def change_time_for_param(param)
+      0
+    end
+    
     def type
       @params['type']
     end
