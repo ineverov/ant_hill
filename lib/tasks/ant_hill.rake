@@ -7,11 +7,13 @@ end
 
 task :monitor do
   host = ENV['drb_host'] || 'localhost'
+  queen = AntHill::Queen.drb_queen(host)
   while true
     sleep 2
     print "\e[2J\e[f"
-    puts "Ants left: #{AntHill::Queen.drb_queen(host).size}"
-    AntHill::Queen.creeps(host).each{|creep|
+    puts "Creep size: #{queen.creeps.size}"
+    puts "Ants left: #{queen.size}"
+    queen.creeps.each{|creep|
       puts creep.to_s
     }
   end

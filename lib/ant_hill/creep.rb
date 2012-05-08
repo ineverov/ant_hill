@@ -1,62 +1,67 @@
 module AntHill
   class Creep
-    attr_reader :host, :user, :password, :status, :ssh_pool, :logger
+    attr_reader :host, :user, :password, :status, :connection_pool, :logger, :current_params, :processed, :passed
+    attr_accessor :active
     def initialize(queen=Queen.queen, config=Configuration.config)
       @config = config
       @queen = queen
-      @ssh_pool = []
-      @current_configuration = {}
+      @current_params = {}
       @status = :wait
       @current_ant = nil
       @processed = 0
+      @passed = 0
       @start_time = Time.now
-      @modifier = nil
     end
     
     def require_ant
       while Queen.locked?
         sleep rand
       end
-      ant = @queen.find_ant(@current_configuration)
+      ant = @queen.find_ant(@current_params)
     end
 
     def setup_and_process_ant(ant)
       @current_ant = ant
       begin
-        @modifier = ant.ant_colony.creep_modifier_class.new(self)
-        @modifier.setup(ant, @current_configuration)
-
-        @curent_configuration = ant.params
-
-        @modifier.run(ant)
+        modifier = ant.ant_colony.creep_modifier_class.new(self)
+        ok = setup(modifier, ant)
+        if ok
+          @current_params = ant.params
+          run(modifier, ant)
+        else
+          @current_params = {}
+          change_status(:error)
+        end
       rescue Exception => e
         change_status(:error)
         logger.error e
       ensure
         @processed+=1
+        @passed +=1 if @current_ant.execution_status.to_sym == :passed
         @current_ant = nil
       end
     end
-    def logger
-      Log.logger_for :creep, host
+
+    def setup(modifier, ant)
+      timeout = modifier.get_setup_time(ant, @current_params)
+      change_status(:setup)
+      ok = timeout_execution(timeout, "setup #{ant.params.inspect}") do
+        modifier.setup(ant, @current_params)
+      end
+      ok &&= modifier.check(ant)
+      ok
     end
 
-    def setup(params, type)
-      change_status(:setup)
-      setupper = @config.setupper(type)
-      time = params.inject(0){|time, p| time+=setupper.change_time_for_param(p)}
-      #FIXME How calculate time
-      begin
-        Timeout::timeout( time * 1.5 ) do
-          setupper.setup(self,params)
-        end
-      rescue Timeout::Error => e
-        logger.error "#{self.host}: timeout error setupping params #{params.inspect}"
-        raise "Setup failed"
+    def run(modifier, ant)
+      timeout = modifier.get_run_time(ant)
+      change_status(:run)
+      timeout_execution(timeout, "run #{ant.to_s}") do
+        modifier.run(ant)
       end
-      params.each{|param, value|
-        @current_configuration[param] = value
-      }
+    end
+
+    def logger
+      Log.logger_for host
     end
 
     def configure(hill_configuration)
@@ -64,36 +69,36 @@ module AntHill
       @host = @hill_cfg['host']
       @user = @hill_cfg['user']
       @password = @hill_cfg['password']
+      @connection_pool = @config.get_connection_class.new(self)
     end
 
     def exec!(command, timeout=nil)
       logger.info("Executing: #{command}")
-      stdout = ""
-      stderr = ""
-      if timeout
-        begin
-          Timeout::timeout( timeout ) do
-            get_ssh.exec!(command) do |ch, stream, data|
-              stderr << data if stream == :stderr
-              stdout << data if stream == :stdout
-            end
-          end
-        rescue Timeout::Error => e
-          change_status(:error)
-          logger.error "#{self.host}: timeout error running command #{command}"
-          return nil
-        rescue Exception => e
-          logger.error e
-        end
-      else
-        get_ssh.exec!(command) do |ch, stream, data|
-          stderr << data if stream == :stderr
-          stdout << data if stream == :stdout
-        end
+      stderr, stdout = timeout_execution(timeout, "exec!(#{command})") do
+        connection_pool.execute(command)
       end
-      logger.info("STDERR: #{stderr}")
+      logger.error("STDERR: #{stderr}") unless stderr.empty?
       logger.info("STDOUT: #{stdout}")
       stdout
+    end
+
+    def timeout_execution(timeout=nil, process = nil)
+      result = nil
+      begin
+        if timeout
+          Timeout::timeout( timeout ) do
+            result = yield 
+          end
+        else
+          result = yield 
+        end
+      rescue Timeout::Error => e
+        change_status(:error)
+        logger.error "#{self.host}: timeout error for #{process.to_s}"
+      rescue Exception => e
+        logger.error e
+      end
+      result
     end
 
     def to_s
@@ -101,46 +106,25 @@ module AntHill
       "%s (%i): %s (%s): %s " % [@hill_cfg['host'], @processed, status, took_time,  @current_ant]
     end
 
+    def active?; @active; end
+
     def service
       while true
         ant = self.require_ant
-        if ant
+        if ant && active?
           setup_and_process_ant(ant)
         else
           change_status(:wait) 
           sleep @config.sleep_interval
         end
       end
-      kill_ssh
-    end
-
-    def get_ssh
-      @ssh_pool.delete_if{ |ssh| ssh.closed? }
-      ssh = @ssh_pool.find{|ssh| !ssh.busy?}
-      return ssh if ssh
-      ssh =  Net::SSH.start(host,user, {:password => password, :verbose => (ENV['SSH_DEBUG'] && ENV['SSH_DEBUG'].to_sym) || :fatal })
-      ssh.send_global_request("keepalive@openssh.com")
-      @ssh_pool << ssh
-      ssh
-    end
-
-    def kill_ssh
-      @ssh_pool.each{ |ssh| ssh.shutdown! unless ssh.closed? }
+      connection_pool.destroy
     end
 
     def change_status(status)
       return if @status == status
       @status = status
       @start_time = Time.now
-    end
-
-    def run(ant)
-      change_status(:run)
-      runner = @config.runner(ant.type)
-      runner.run(ant,self)
-    rescue Exception => e
-      @status = :error
-      logger.error e
     end
   end
 end

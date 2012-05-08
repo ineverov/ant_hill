@@ -16,7 +16,7 @@ require_ant_hill 'ant_colony'
 #require_ant_hill 'ant_finder'
 #require_ant_hill 'ant_runner'
 #require_ant_hill 'matcher'
-#require_ant_hill 'creep_setupper'
+require_ant_hill 'creep_modifier'
 require_ant_hill 'version'
 require_ant_hill 'log'
 

@@ -1,13 +1,14 @@
 module AntHill
   class Ant
     attr_reader :type, :params, :colony, :status
+    attr_accessor :execution_status
     def initialize(params, colony, config = Configuration.config)
       @colony = colony
 
       @params = colony.params.merge(params)
 
       @status = :not_started
-
+      @execution_status = nil
       @type = colony.type
       @priority = config.init_time - Time.now
     end

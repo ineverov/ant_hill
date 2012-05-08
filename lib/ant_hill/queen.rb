@@ -101,6 +101,21 @@ module AntHill
       Log.logger_for(:queen)
     end
 
+    def suspend
+      creeps.each{|creep|
+        creep.active = false
+        while creep.status != :wait
+          sleep 1
+        end 
+      }
+    end
+
+    def release
+      creeps.each{|creep|
+        creep.active = true
+      }
+    end
+
     class << self
       def locked?
         @@queen.locked?
@@ -110,14 +125,14 @@ module AntHill
         @@queen ||= self.new
       end
 
-      def drb_queen(host)
+      def drb_queen(host = 'localhost')
         DRb.start_service
         queen = DRbObject.new nil, "druby://#{host}:6666"
       rescue Exception => e
         puts e
       end
 
-      def create_colony(args, host)
+      def create_colony(args, host = 'localhost')
         drb_queen(host).create_colony parse_args(args)
       end
 

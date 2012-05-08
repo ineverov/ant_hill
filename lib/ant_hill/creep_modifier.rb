@@ -9,23 +9,23 @@ module AntHill
 
     def find_diff(ant)
       diff = {}
-      config = ant.params
-      type = ant.type
+      ant_config = ant.params
+      creep_config = creep.current_params
 
-      config.each_key{|k|
-        diff[k] = config[k] unless config[k] == @current_configuration[k]
+      ant_config.each_key{|k|
+        diff[k] = ant_config[k] unless ant_config[k] == creep_config[k]
       }
       diff
     end
 
     # Can be redefined in child class
-    def setup
+    def setup(ant)
     end
 
-    def run
+    def run(ant)
     end
 
-    def check
+    def check(ant)
     end
 
   end
