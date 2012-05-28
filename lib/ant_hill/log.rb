@@ -14,11 +14,11 @@ module AntHill
       private
       def level(level)
         case level
-        when :fatal : Logger::FATAL
-        when :error : Logger::ERROR
-        when :warn : Logger::WARN
-        when :info : Logger::INFO
-        when :debug : Logger::DEBUG
+        when :fatal then Logger::FATAL
+        when :error then Logger::ERROR
+        when :warn then Logger::WARN
+        when :info then Logger::INFO
+        when :debug then Logger::DEBUG
         else Logger::ERROR
         end
       end
