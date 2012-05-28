@@ -1,7 +1,8 @@
 module AntHill
   class Configuration
     attr_reader :init_time
-    
+   
+    DEFAULT_MONITOR = { 'hostname_lenght' => 15, 'processed_lenght' => 7} 
     def initialize
       @init_time = Time.now
       @config_file = ''
@@ -71,13 +72,20 @@ module AntHill
           obj = obj.const_get(const)
         }
       rescue
-        Log.logger_for(:configuration).error("No such class defined: #{klass}")
+        Log.logger_for(:configuration).error("No such class defined: #{name}")
       end
       return obj
     end
 
     def get_connection_class
       get_const_by_name(connection_class)
+    end
+
+    def monitor
+      return @monitor if @monitor
+      @monitor = DEFAULT_MONITOR
+      config = @configuration['monitor'] || {}
+      @monitor = @monitor.merge(config)
     end
 
     def [](key)

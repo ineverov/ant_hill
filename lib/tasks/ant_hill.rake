@@ -5,8 +5,12 @@ task :add_colony do
   AntHill::Queen.create_colony ARGV[1..-1], host
 end
 
-task :monitor do
+task :kill_colony do
   host = ENV['drb_host'] || 'localhost'
+  AntHill::Queen.kill_colony ARGV[1..-1], host
+end
+
+task :monitor do
   queen = AntHill::Queen.drb_queen(host)
   while true
     sleep 2
@@ -21,7 +25,6 @@ end
 
 task :execute_each do
   threads = []
-  host = ENV['drb_host'] || 'localhost'
   AntHill::Queen.creeps(host).each{|creep|
     threads << Thread.new do
        creep.exec!(ENV['command'])
@@ -30,3 +33,15 @@ task :execute_each do
   threads.each{ |t| t.join}
 end
 
+task :suspend_queen do
+  AntHill::Queen.drb_queen(host).suspend
+end
+
+task :release_queen do
+  AntHill::Queen.drb_queen(host).release
+end
+
+
+def host
+  ENV['drb_host'] || 'localhost'
+end

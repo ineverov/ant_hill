@@ -53,7 +53,7 @@ module AntHill
 
         ac = double("ant_colony")
         ac.stub(:creep_modifier_class) { cmc }
-
+        ant.stub(:colony){ac}
         ant.stub(:ant_colony){ac}
         ant.stub(:params) { params }
         ant.stub(:execution_status){ 'passed' }

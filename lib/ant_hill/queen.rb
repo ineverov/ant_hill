@@ -2,7 +2,7 @@ require 'drb'
 
 module AntHill
   class Queen
-    attr_reader :creeps
+    attr_reader :creeps, :ants, :colonies
 
     DRB_HOST = '0.0.0.0'
     DRB_PORT = 6666
@@ -11,9 +11,10 @@ module AntHill
       @config = config
       @ants = []
       @colony_queue = []
+      @colonies = []
       trap("INT") do
         puts "Terminating... Pls wait"
-        @creeps.each{|c|  c.kill_ssh  }
+        @creeps.each{|c|  c.kill_connections  }
         @threads.each{|th| th.exit  }
       end
     end
@@ -28,13 +29,17 @@ module AntHill
       spawn_drb_queen
       spawn_colonies_processor
       @threads.each{|t| t.join}
+    rescue Exception => e
+      logger.error "Where was an error in queen. Details: #{e}\n#{e.backtrace.join("\n")}"
     end
 
     def create_colony(params={})
       type = params['type']
-      colony = @config.ant_colony_class(type)
-      if colony
-        @colony_queue << colony.new(params)
+      colony_class = @config.ant_colony_class(type)
+      if colony_class
+        colony = colony_class.new(params)
+        @colony_queue << colony
+        @colonies << colony
       else
         logger.error "Couldn't process request #{params} because of previous errors"
       end
@@ -55,8 +60,13 @@ module AntHill
 
     def spawn_drb_queen
       @threads << Thread.new{
-        Thread.current["name"]="main"
-        DRb.start_service "druby://#{DRB_HOST}:#{DRB_PORT}", self
+        begin 
+          Thread.current["name"]="main"
+          DRb.start_service "druby://#{DRB_HOST}:#{DRB_PORT}", self
+          DRb.thread.join
+        rescue Exception => e
+          logger.error "Where was an error in drb_queen =(. Details: #{e}\n#{e.backtrace}"
+        end
       }
     end
 
@@ -81,10 +91,12 @@ module AntHill
 
     def find_ant(params)
       @lock = true
+      return nil if @ants.empty?
       ants = prioritized_ants(params)
       winner = ants.pop
-      @lock = false
       winner
+    ensure 
+      @lock = false
     end
 
     def prioritized_ants(params)
@@ -105,6 +117,8 @@ module AntHill
     def suspend
       creeps.each{|creep|
         creep.active = false
+      }
+      creeps.each{|creep|
         while creep.status != :wait
           sleep 1
         end 
@@ -115,6 +129,20 @@ module AntHill
       creeps.each{|creep|
         creep.active = true
       }
+    end
+
+    def kill_colony(params)
+      to_kill = @colonies.select do |colony| 
+        colony.is_it_me?(params)
+      end
+      @lock = true
+      to_kill.each do |colony|
+        colony.kill
+        @ants.reject!{|ant|
+          ant.colony == colony
+        }
+      end
+      @lock = false
     end
 
     class << self
@@ -141,6 +169,11 @@ module AntHill
         drb_queen(host).creeps
       end
 
+      def kill_colony(args, host = 'localhost')
+        drb_queen(host).kill_colony parse_args(args)
+      end
+
+      private
       def parse_args(args)
         result = {}
         args.each do |arg|

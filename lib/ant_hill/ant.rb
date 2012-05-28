@@ -1,7 +1,7 @@
 module AntHill
   class Ant
     attr_reader :type, :params, :colony, :status, :config
-    attr_accessor :execution_status
+    attr_accessor :execution_status, :runner
     def initialize(params, colony, config = Configuration.config)
       @colony = colony
       @config = config
@@ -15,7 +15,7 @@ module AntHill
     end
 
     def to_s
-      params.inspect
+      @colony.ant_to_s(self)
     end
 
     def priority(creep_params)
@@ -30,6 +30,20 @@ module AntHill
 
     def change_status(status)
       @status = status
+    end
+
+    def logger
+      colony.logger
+    end
+
+    def start
+      change_status(:started)
+      colony.colony_ant_started
+    end
+
+    def finish
+      change_status(:finished)
+      colony.colony_ant_finished
     end
 
     def finished?

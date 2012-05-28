@@ -1,5 +1,6 @@
 module AntHill
   class ConnectionPool
+    attr_reader :creep
     def initialize(creep)
       @creep = creep
       @connection_pool = []
@@ -12,7 +13,7 @@ module AntHill
     def get_connection
       @connection_pool.delete_if{ |connection| closed?(connection) }
       connection = @connection_pool.first
-      return connection if cnnection
+      return connection if connection
       new_conn = get_new
       @connection_pool << new_conn
       new_conn

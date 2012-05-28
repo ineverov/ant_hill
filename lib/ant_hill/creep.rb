@@ -1,6 +1,6 @@
 module AntHill
   class Creep
-    attr_reader :host, :user, :password, :status, :connection_pool, :logger, :current_params, :processed, :passed
+    attr_reader :host, :user, :password, :status, :connection_pool, :logger, :current_params, :processed, :passed, :start_time, :hill_cfg, :current_ant
     attr_accessor :active
     def initialize(queen=Queen.queen, config=Configuration.config)
       @config = config
@@ -24,8 +24,14 @@ module AntHill
 
     def setup_and_process_ant(ant)
       @current_ant = ant
+      modifier = ant.colony.creep_modifier_class.new(self)
+      ant.start
       begin
-        modifier = ant.colony.creep_modifier_class.new(self)
+        begin
+          modifier.before_process(ant)
+        rescue Exception => e
+          logger.error "Where was an error during before_process method: #{e}:\n #{e.backtrace}"
+        end
         ok = setup(modifier, ant)
         if ok
           @current_params = ant.params
@@ -38,6 +44,12 @@ module AntHill
         change_status(:error)
         logger.error e
       ensure
+        ant.finish
+        begin
+          modifier.after_process(ant)
+        rescue Exception => e
+          logger.error "Where was an error during after_process method: #{e}:\n #{e.backtrace}"
+        end
         @processed+=1
         @passed +=1 if @current_ant.execution_status.to_sym == :passed
         @current_ant = nil
@@ -45,12 +57,22 @@ module AntHill
     end
 
     def setup(modifier, ant)
-      timeout = modifier.get_setup_time(ant, @current_params)
-      change_status(:setup)
-      ok = timeout_execution(timeout, "setup #{ant.params.inspect}") do
-        modifier.setup(ant)
+      timeout = 0
+      begin 
+        timeout = modifier.get_setup_time(ant, @current_params)
+      rescue Exception => e
+        logger.error "Where was an error getting setup time: #{e}:\n #{e.backtrace}"
       end
-      ok &&= modifier.check(ant)
+      change_status(:setup)
+      ok = false
+      begin 
+        ok = timeout_execution(timeout, "setup #{ant.params.inspect}") do
+          modifier.setup_ant(ant)
+        end
+        ok &&= modifier.check(ant)
+      rescue Exception => e
+        logger.error "Where was an error processing setup and check: #{e}:\n #{e.backtrace}"
+      end
       ok
     end
 
@@ -58,7 +80,7 @@ module AntHill
       timeout = modifier.get_run_time(ant)
       change_status(:run)
       timeout_execution(timeout, "run #{ant.to_s}") do
-        modifier.run(ant)
+        modifier.run_ant(ant)
       end
     end
 
@@ -73,15 +95,16 @@ module AntHill
       @password = @hill_cfg['password']
       @connection_pool = @config.get_connection_class.new(self)
     end
-
+  
     def exec!(command, timeout=nil)
       logger.info("Executing: #{command}")
       stderr,stdout = '', ''
-      stderr, stdout = timeout_execution(timeout, "exec!(#{command})") do
-        connection_pool.execute(command)
+      stdout, stderr = timeout_execution(timeout, "exec!(#{command})") do
+        connection_pool.exec(command)
       end
-      logger.error("STDERR: #{stderr}") 
-      logger.info("STDOUT: #{stdout}")
+      logger.info("STDERR: #{stderr}") unless stderr.empty?
+      logger.info("STDOUT: #{stdout}") unless stdout.empty?
+      logger.info("Executing done")
       stdout
     end
 
@@ -113,16 +136,19 @@ module AntHill
 
     def service
       while true
-        ant = self.require_ant
-        if ant && active?
-          logger.info("Setupping and processing ant")
+        if active? && ( ant = self.require_ant )
+          logger.debug("Setupping and processing ant")
           setup_and_process_ant(ant)
         else
-          logger.info("Waiting for more ants or release")
+          logger.debug("Waiting for more ants or release")
           change_status(:wait) 
           sleep @config.sleep_interval
         end
       end
+      connection_pool.destroy
+    end
+
+    def kill_connections
       connection_pool.destroy
     end
 
