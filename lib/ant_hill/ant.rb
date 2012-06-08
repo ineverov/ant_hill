@@ -1,7 +1,7 @@
 module AntHill
   class Ant
     attr_reader :type, :params, :colony, :status, :config
-    attr_accessor :execution_status, :runner
+    attr_accessor :execution_status, :runner, :prior
     def initialize(params, colony, config = Configuration.config)
       @colony = colony
       @config = config
@@ -11,7 +11,8 @@ module AntHill
       @status = :not_started
       @execution_status = :queued
       @type = colony.type
-      @priority = config.init_time - Time.now
+      @prior = config.init_time - Time.now
+      @prior += colony.get_priority
     end
 
     def to_s
@@ -19,7 +20,7 @@ module AntHill
     end
 
     def priority(creep_params)
-      priority = @priority
+      priority = @prior
       params.each{|param,value|
         unless value == creep_params[param]
           priority -= colony.change_time_for_param(param)

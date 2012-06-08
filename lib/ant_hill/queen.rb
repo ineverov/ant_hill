@@ -131,10 +131,14 @@ module AntHill
       }
     end
 
-    def kill_colony(params)
-      to_kill = @colonies.select do |colony| 
+    def find_colonies(params)
+      @colonies.select do |colony| 
         colony.is_it_me?(params)
       end
+    end
+
+    def kill_colony(params)
+      to_kill = find_colonies(params)
       @lock = true
       to_kill.each do |colony|
         colony.kill

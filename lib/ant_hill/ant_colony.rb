@@ -78,6 +78,17 @@ module AntHill
         end
       end
     end
+
+    def get_priority
+      pr = 0
+      begin
+        pr = priority
+      rescue Exception => e
+        logger.error "There was an error processing priority method for #{self.class}: #{e}\n#{e.backtrace}"
+      ensure
+        return pr
+      end
+    end
     
     def change_time_for_param(param)
       creep_modifier_class.change_time_for_param(param)
@@ -92,6 +103,10 @@ module AntHill
     # Can be redefined in child class
     def search_ants(params)
       []
+    end
+
+    def priority
+      0
     end
 
     def ant_to_s(ant)
