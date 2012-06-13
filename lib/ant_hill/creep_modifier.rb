@@ -86,6 +86,9 @@ module AntHill
     def after_setup(ant)
     end
 
+    def setup_failed(ant)
+    end
+
     def before_process(ant)
     end
 

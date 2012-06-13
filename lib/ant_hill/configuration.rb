@@ -24,10 +24,10 @@ module AntHill
     def require_libs
       basedir = @configuration['basedir']
       lib_path = @configuration['lib_path']
-
+      $LOAD_PATH << basedir
       require File.join(basedir,lib_path)
     rescue LoadError => e
-      STDERR.puts "Configuration file is invalid! No such file exists #{File.join(basedir, lib_path)}" 
+      STDERR.puts "Configuration file is invalid! No such file exists #{File.join(basedir, lib_path)}\n#{e}\n#{e.backtrace}" 
     end
 
     def validate

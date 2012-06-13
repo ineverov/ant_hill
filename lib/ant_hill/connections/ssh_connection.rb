@@ -1,3 +1,4 @@
+require 'net/ssh'
 module AntHill
   class SSHConnection < ConnectionPool
     def closed?(connection)

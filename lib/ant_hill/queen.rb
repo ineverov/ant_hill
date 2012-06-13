@@ -6,6 +6,8 @@ module AntHill
 
     DRB_HOST = '0.0.0.0'
     DRB_PORT = 6666
+    
+    include DRbUndumped
 
     def initialize(config = Configuration.config)
       @config = config

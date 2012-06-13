@@ -27,16 +27,13 @@ module AntHill
       modifier = ant.colony.creep_modifier_class.new(self)
       ant.start
       begin
-        begin
-          modifier.before_process(ant)
-        rescue Exception => e
-          logger.error "Where was an error during before_process method: #{e}:\n #{e.backtrace}"
-        end
+        before_process(ant)
         ok = setup(modifier, ant)
         if ok
           @current_params = ant.params
           run(modifier, ant)
         else
+          setup_failed(ant)
           @current_params = {}
           change_status(:error)
         end
@@ -45,15 +42,28 @@ module AntHill
         logger.error e
       ensure
         ant.finish
-        begin
-          modifier.after_process(ant)
-        rescue Exception => e
-          logger.error "Where was an error during after_process method: #{e}:\n #{e.backtrace}"
-        end
         @processed+=1
         @passed +=1 if @current_ant.execution_status.to_sym == :passed
         @current_ant = nil
       end
+    end
+
+    def before_process(ant)
+      modifier.before_process(ant)
+    rescue Exception => e
+      logger.error "Where was an error during before_process method: #{e}:\n #{e.backtrace}"
+    end
+
+    def after_process(ant)
+      modifier.after_process(ant)
+    rescue Exception => e
+      logger.error "Where was an error during after_process method: #{e}:\n #{e.backtrace}"
+    end
+
+    def setup_failed(ant)
+      modifier.setup_failed(ant)
+    rescue Exception => e
+      logger.error "Where was an error during before_process method: #{e}:\n #{e.backtrace}"
     end
 
     def setup(modifier, ant)
