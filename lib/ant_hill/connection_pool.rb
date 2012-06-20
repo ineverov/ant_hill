@@ -1,6 +1,7 @@
 module AntHill
   class ConnectionPool
     attr_reader :creep
+    include DRbUndumped
     def initialize(creep)
       @creep = creep
       @connection_pool = []

@@ -1,5 +1,6 @@
 module AntHill
   class Log
+    include DRbUndumped
     class << self
       @@loggers = {}
       def logger_for(name, config = Configuration.config)

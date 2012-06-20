@@ -1,6 +1,7 @@
 require 'net/ssh'
 module AntHill
   class SSHConnection < ConnectionPool
+    include DRbUndumped
     def closed?(connection)
       connection.closed?
     end

@@ -2,7 +2,7 @@ module AntHill
   class CreepModifier
 
     attr_reader :creep
-
+    include DRbUndumped
     def initialize(creep)
       @creep = creep
     end

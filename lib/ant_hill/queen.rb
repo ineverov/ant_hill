@@ -2,7 +2,7 @@ module AntHill
   class Queen
     attr_reader :creeps, :ants, :colonies
 
-    DRB_HOST = '0.0.0.0'
+    DRB_HOST = '127.0.0.1'
     DRB_PORT = 6666
     
     include DRbUndumped
@@ -12,6 +12,8 @@ module AntHill
       @ants = []
       @colony_queue = []
       @colonies = []
+      @drb_host = config.drb_host
+      @drb_port = config.drb_port
       trap("INT") do
         puts "Terminating... Pls wait"
         @creeps.each{|c|  c.kill_connections  }
@@ -62,7 +64,7 @@ module AntHill
       @threads << Thread.new{
         begin 
           Thread.current["name"]="main"
-          DRb.start_service "druby://#{DRB_HOST}:#{DRB_PORT}", self
+          DRb.start_service "druby://#{@drb_host || DRB_HOST}:#{@drb_port || DRB_PORT}", self
           DRb.thread.join
         rescue Exception => e
           logger.error "Where was an error in drb_queen =(. Details: #{e}\n#{e.backtrace}"
@@ -160,7 +162,7 @@ module AntHill
 
       def drb_queen(host = 'localhost')
         DRb.start_service
-        queen = DRbObject.new nil, "druby://#{host}:6666"
+        queen = DRbObject.new_with_uri "druby://#{host}:6666"
       rescue Exception => e
         puts e
       end

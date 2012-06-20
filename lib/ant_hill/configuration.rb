@@ -1,7 +1,7 @@
 module AntHill
   class Configuration
     attr_reader :init_time
-   
+    include DRbUndumped   
     DEFAULT_MONITOR = { 'hostname_lenght' => 15, 'processed_lenght' => 7} 
     def initialize
       @init_time = Time.now
