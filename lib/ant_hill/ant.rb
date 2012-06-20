@@ -1,11 +1,12 @@
 module AntHill
   class Ant
     attr_reader :type, :params, :colony, :status, :config
-    attr_accessor :execution_status, :runner, :prior
+    attr_accessor :execution_status, :runner, :prior, :output
+    include DRbUndumped
     def initialize(params, colony, config = Configuration.config)
       @colony = colony
       @config = config
-
+      @output = ''
       @params = colony.params.merge(params)
 
       @status = :not_started

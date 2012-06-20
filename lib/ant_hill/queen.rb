@@ -1,5 +1,3 @@
-require 'drb'
-
 module AntHill
   class Queen
     attr_reader :creeps, :ants, :colonies

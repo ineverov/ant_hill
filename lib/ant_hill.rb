@@ -2,6 +2,7 @@ require 'yaml'
 require 'logger'
 require 'fileutils'
 require 'ruby-debug'
+require 'drb'
 
 def require_ant_hill(file)
   require "ant_hill/#{file}"

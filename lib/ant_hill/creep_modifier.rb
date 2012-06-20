@@ -25,7 +25,8 @@ module AntHill
         logger.error "Error during run ant_started method: #{e} \n #{e.backtrace}"
       end
       begin
-        run(ant)
+        out = run(ant)
+        ant.output = out
       rescue Exception => e
         logger.error "Error during processing run method: #{e} \n #{e.backtrace}"
       ensure
