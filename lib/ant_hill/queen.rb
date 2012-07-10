@@ -32,7 +32,7 @@ module AntHill
       spawn_colonies_processor
       @threads.each{|t| t.join}
     rescue Exception => e
-      logger.error "Where was an error in queen. Details: #{e}\n#{e.backtrace.join("\n")}"
+      logger.error "There was an error in queen. Details: #{e}\n#{e.backtrace.join("\n")}"
     end
 
     def create_colony(params={})
@@ -67,7 +67,7 @@ module AntHill
           DRb.start_service "druby://#{@drb_host || DRB_HOST}:#{@drb_port || DRB_PORT}", self
           DRb.thread.join
         rescue Exception => e
-          logger.error "Where was an error in drb_queen =(. Details: #{e}\n#{e.backtrace}"
+          logger.error "There was an error in drb_queen =(. Details: #{e}\n#{e.backtrace}"
         end
       }
     end
@@ -79,8 +79,7 @@ module AntHill
           colony = @colony_queue.pop
           if colony
             new_ants = colony.get_ants
-            @ants += new_ants
-            #add_ants(new_ants)
+            add_ants(new_ants)
           end
           sleep 1
         end
@@ -121,7 +120,7 @@ module AntHill
         creep.active = false
       }
       creeps.each{|creep|
-        while creep.status != :wait
+        while creep.status != :disabled
           sleep 1
         end 
       }

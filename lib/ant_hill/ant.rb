@@ -30,6 +30,10 @@ module AntHill
       priority
     end
 
+    def return_to_queue(queen = Queen.queen)
+      queen.add_ants([self])
+    end
+
     def change_status(status)
       @status = status
     end
