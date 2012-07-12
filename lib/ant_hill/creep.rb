@@ -1,12 +1,13 @@
 module AntHill
   class Creep
     attr_reader :host, :user, :password, :status, :connection_pool, :logger, :processed, :passed, :start_time, :hill_cfg, :current_ant
-    attr_accessor :active, :current_params
+    attr_accessor :active, :current_params, :custom_data
     include DRbUndumped
     def initialize(queen=Queen.queen, config=Configuration.config)
       @config = config
       @queen = queen
       @current_params = {}
+      @custom_data = {}
       @status = :wait
       @current_ant = nil
       @processed = 0
@@ -36,9 +37,9 @@ module AntHill
         else
           setup_failed(ant)
         end
-      rescue Exception => e
+      rescue => e
         change_status(:error)
-        logger.error e
+        logger.error "#{e}\n#{e.backtrace}" 
       ensure
         ant.finish
         after_process(ant)
@@ -50,37 +51,38 @@ module AntHill
 
     def before_process(ant)
       @modifier.before_process(ant)
-    rescue Exception => e
+    rescue => e
       logger.error "There was an error during before_process method: #{e}:\n #{e.backtrace}"
     end
 
     def after_process(ant)
       @modifier.after_process(ant)
-    rescue Exception => e
+    rescue => e
       logger.error "There was an error during after_process method: #{e}:\n #{e.backtrace}"
     end
 
     def setup_failed(ant)
       @modifier.setup_failed(ant)
-    rescue Exception => e
-      logger.error "There was an error during before_process method: #{e}:\n #{e.backtrace}"
+    rescue => e
+      logger.error "There was an error during setup_failed method: #{e}:\n #{e.backtrace}"
     end
 
     def setup(ant)
       timeout = 0
       begin 
         timeout = @modifier.get_setup_time(ant, @current_params)
-      rescue Exception => e
+      rescue => e
         logger.error "There was an error getting setup time: #{e}:\n #{e.backtrace}"
       end
       change_status(:setup)
       ok = false
-      begin 
+      begin
+        logger.debug "executing setup method with timeout #{timeout}" 
         ok = timeout_execution(timeout, "setup #{ant.params.inspect}") do
           @modifier.setup_ant(ant)
         end
         ok &&= @modifier.check(ant)
-      rescue Exception => e
+      rescue => e
         logger.error "There was an error processing setup and check: #{e}:\n #{e.backtrace}"
       end
       ok
@@ -131,8 +133,8 @@ module AntHill
       rescue Timeout::Error => e
         change_status(:error)
         logger.error "#{self.host}: timeout error for #{process.to_s}"
-      rescue Exception => e
-        logger.error e
+#      rescue Exception => e
+#        logger.error "#{e}\n#{e.backtrace}"
       end
       result
     end

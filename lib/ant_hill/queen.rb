@@ -14,6 +14,7 @@ module AntHill
       @colonies = []
       @drb_host = config.drb_host
       @drb_port = config.drb_port
+      @@mutex = Mutex.new
       trap("INT") do
         puts "Terminating... Pls wait"
         @creeps.each{|c|  c.kill_connections  }
@@ -31,7 +32,7 @@ module AntHill
       spawn_drb_queen
       spawn_colonies_processor
       @threads.each{|t| t.join}
-    rescue Exception => e
+    rescue => e
       logger.error "There was an error in queen. Details: #{e}\n#{e.backtrace.join("\n")}"
     end
 
@@ -66,7 +67,7 @@ module AntHill
           Thread.current["name"]="main"
           DRb.start_service "druby://#{@drb_host || DRB_HOST}:#{@drb_port || DRB_PORT}", self
           DRb.thread.join
-        rescue Exception => e
+        rescue => e
           logger.error "There was an error in drb_queen =(. Details: #{e}\n#{e.backtrace}"
         end
       }
@@ -92,12 +93,12 @@ module AntHill
 
     def find_ant(params)
       @lock = true
-      return nil if @ants.empty?
-      ants = prioritized_ants(params)
-      winner = ants.pop
-      winner
-    ensure 
-      @lock = false
+      @@mutex.synchronize{
+        return nil if @ants.empty?
+        ants = prioritized_ants(params)
+        winner = ants.pop
+        winner
+      }
     end
 
     def prioritized_ants(params)
@@ -140,19 +141,19 @@ module AntHill
 
     def kill_colony(params)
       to_kill = find_colonies(params)
-      @lock = true
-      to_kill.each do |colony|
-        colony.kill
-        @ants.reject!{|ant|
-          ant.colony == colony
-        }
-      end
-      @lock = false
+      @@mutex.synchronize{
+        to_kill.each do |colony|
+          colony.kill
+          @ants.reject!{|ant|
+            ant.colony == colony
+          }
+        end
+      }
     end
 
     class << self
       def locked?
-        @@queen.locked?
+        @@mutex.locked?
       end
 
       def queen
@@ -162,7 +163,7 @@ module AntHill
       def drb_queen(host = 'localhost')
         DRb.start_service
         queen = DRbObject.new_with_uri "druby://#{host}:6666"
-      rescue Exception => e
+      rescue => e
         puts e
       end
 

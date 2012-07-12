@@ -11,6 +11,7 @@ module AntHill
     end
 
     def get_new
+      logger.debug "Establishing connection for #{creep.user}@#{creep.host} passwd:#{creep.password}"
       ssh =  Net::SSH.start(creep.host, creep.user, {:password => creep.password, :verbose => (ENV['SSH_DEBUG'] && ENV['SSH_DEBUG'].to_sym) || :fatal })
       ssh.send_global_request("keepalive@openssh.com")
       ssh

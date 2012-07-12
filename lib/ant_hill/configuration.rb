@@ -13,7 +13,7 @@ module AntHill
       @config_file = filename
       begin
         @configuration = YAML::load_file(filename)
-      rescue Exception => ex
+      rescue => ex
         STDERR.puts "Couldn't find config file #{filename}"
         STDERR.puts ex
         STDERR.puts ex.backtrace

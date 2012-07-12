@@ -24,6 +24,10 @@ module AntHill
       @connection_pool.each{|connection| kill_connection(connection)}
     end
 
+    def logger
+      creep.logger
+    end
+
     def closed?(connection)
       raise "Should be implemented in child class"
     end

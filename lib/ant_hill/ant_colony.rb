@@ -30,7 +30,7 @@ module AntHill
       }
       after_search
       @ants
-    rescue Exception => e
+    rescue => e
       logger.error "Error while processing search ants for colony\n#{e}\n#{e.backtrace}"
     ensure
       # FIXME: Trigger colony finished if no ants were found
@@ -61,7 +61,7 @@ module AntHill
         @started = true
         begin 
           colony_started
-        rescue Exception => e
+        rescue => e
           logger.error "There was an error processing colony_started method for #{self.class}: #{e}\n#{e.backtrace}"
         end
       end
@@ -73,7 +73,7 @@ module AntHill
       if finished?
         begin 
           colony_finished
-        rescue Exception => e
+        rescue => e
           logger.error "There was an error processing colony_finished method for #{self.class}: #{e}\n#{e.backtrace}"
         end
       end
@@ -83,7 +83,7 @@ module AntHill
       pr = 0
       begin
         pr = priority
-      rescue Exception => e
+      rescue => e
         logger.error "There was an error processing priority method for #{self.class}: #{e}\n#{e.backtrace}"
       ensure
         return pr
