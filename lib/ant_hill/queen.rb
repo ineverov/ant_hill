@@ -120,11 +120,9 @@ module AntHill
       creeps.each{|creep|
         creep.active = false
       }
-      creeps.each{|creep|
-        while creep.status != :disabled
-          sleep 1
-        end 
-      }
+      while creeps.any?{|creep| creep.status != :disabled }
+        sleep 1
+      end
     end
 
     def release
