@@ -20,13 +20,15 @@ module AntHill
         @creeps.each{|c|  c.kill_connections  }
         @threads.each{|th| th.exit  }
       end
+      @active = true
+      @loaded_params = {}
     end
 
     def size
       @ants.size
     end
 
-    def service(cfg={})
+    def service
       @threads = []
       spawn_creeps(@config.creeps)
       spawn_drb_queen
@@ -36,25 +38,31 @@ module AntHill
       logger.error "There was an error in queen. Details: #{e}\n#{e.backtrace.join("\n")}"
     end
 
-    def create_colony(params={})
+    def create_colony(params={}, loaded_params = nil)
       type = params['type']
+      type = loaded_params[:params]['type'] if loaded_params
       colony_class = @config.ant_colony_class(type)
       if colony_class
         colony = colony_class.new(params)
-        @colony_queue << colony
+        colony.from_hash(loaded_params) if loaded_params
+        @colony_queue << colony unless loaded_params
         @colonies << colony
       else
         logger.error "Couldn't process request #{params} because of previous errors"
       end
+      colony
     end
 
     def spawn_creeps(creeps)
       @creeps = []
+      loaded_params = @loaded_params[:creeps]
       creeps.each do |creep_config|
+        creep_loaded = loaded_params && loaded_params.find{|cr| cr[:hill_cfg]['name'] == creep_config['name'] } || {}
         @threads << Thread.new{
           c = Creep.new
           @creeps << c
           c.configure(creep_config)
+          c.from_hash(creep_loaded)
           Thread.current["name"]=c.to_s
           c.service
         }
@@ -77,10 +85,14 @@ module AntHill
       @threads << Thread.new{
         Thread.current["name"]="colony queue processor"
         while true do
-          colony = @colony_queue.pop
-          if colony
-            new_ants = colony.get_ants
-            add_ants(new_ants)
+          if @active
+            @colony_processor_busy = true
+            colony = @colony_queue.pop
+            if colony
+              new_ants = colony.get_ants
+              add_ants(new_ants)
+            end
+            @colony_processor_busy = false
           end
           sleep 1
         end
@@ -92,13 +104,13 @@ module AntHill
     end
 
     def find_ant(params)
-      @lock = true
+      return nil if @ants.empty?
+      winner = nil
       @@mutex.synchronize{
-        return nil if @ants.empty?
         ants = prioritized_ants(params)
         winner = ants.pop
-        winner
       }
+      winner
     end
 
     def prioritized_ants(params)
@@ -117,10 +129,14 @@ module AntHill
     end
 
     def suspend
+      @active = false
       creeps.each{|creep|
         creep.active = false
       }
       while creeps.any?{|creep| creep.status != :disabled }
+        sleep 1
+      end
+      while @colony_processor_busy
         sleep 1
       end
     end
@@ -146,6 +162,36 @@ module AntHill
             ant.colony == colony
           }
         end
+      }
+    end
+
+    def save_queen(filename)
+      queen_hash = to_hash
+      File.open(filename, "w+") { |f| f.puts queen_hash.to_yaml}
+    end
+
+    def restore_queen(filename)
+      hash = YAML::load_file(filename)
+      @loaded_params = hash
+      from_hash(hash)
+    end
+
+    def from_hash(hash)
+      colonies = hash[:colonies]
+      tmp = {}
+      colonies.each do |col|
+        colony = create_colony({},col)
+        tmp[col[:id]] = colony
+      end
+      @colonies.each{|c| add_ants(c.ants)}
+      @colony_queue = colonies.collect{|cq| tmp[cq]}
+    end
+
+    def to_hash(include_finished = false)
+      {
+        :colonies => @colonies.collect{|ac| ac.to_hash(include_finished) },
+        :colony_queue => @colony_queue.collect{|ac| ac.object_id },
+        :creeps => @creeps.collect{|c| c.to_hash } 
       }
     end
 

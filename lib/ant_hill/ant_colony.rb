@@ -11,6 +11,29 @@ module AntHill
       @started = false
     end
 
+    def from_hash(hash = nil)
+      if hash
+        @started = hash[:started]
+        @params = hash[:params]
+        @ants = hash[:ants].collect{|ant_data|
+          ant = Ant.new(ant_data[:params], self)
+          ant.from_hash(ant_data)
+          ant
+        }
+      end
+    end
+
+    def to_hash(include_finished = false)
+      _ants = @ants
+      _ants = @ants.select{|a| !a.finished?} unless include_finished
+      {
+        :id => object_id,
+        :started => @started,
+        :params => @params,
+        :ants => _ants.collect{|a| a.to_hash}
+      }
+    end
+
     def creep_modifier_class
       @creep_modifier_class ||= @config.creep_modifier_class(type)
       return @creep_modifier_class if @creep_modifier_class

@@ -2,5 +2,13 @@
 require 'rubygems'
 require 'ant_hill'
 #AntHill::Configuration.config
-AntHill::Queen.queen.service
+queen = nil
+if ARGV.size == 1
+  queen = AntHill::Queen.queen
+elsif ARGV.size == 2
+  queen = AntHill::Queen.queen
+  filename = ARGV[1]
+  queen.restore_queen(filename)
+end
+queen.service
 

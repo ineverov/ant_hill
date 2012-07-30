@@ -24,6 +24,31 @@ module AntHill
       ant = @queen.find_ant(@current_params)
     end
 
+    def from_hash(hash)
+      @current_params = hash[:current_parmas] || {}
+      @custom_data = hash[:custom_data] || {}
+      @status = hash[:status] || :wait
+      @processed = hash[:processed] || 0
+      @passed = hash[:passed] || 0
+      @active = hash[:active] || true
+      @start_time = hash[:start_time] || Time.now
+      @hill_cfg.merge!(hash[:hill_cfg] || {})
+    end
+
+    def to_hash
+      {
+        :id => object_id,
+        :current_params => @current_params,
+        :cutom_data => @custom_data,
+        :status => @status,
+        :processed => @processed,
+        :passed => @passed,
+        :active => @active,
+        :start_time => @start_time,
+        :hill_cfg => @hill_cfg
+      }
+    end
+
     def setup_and_process_ant(ant)
       @current_ant = ant
       @modifier = ant.colony.creep_modifier_class.new(self)

@@ -20,6 +20,33 @@ module AntHill
       @colony.ant_to_s(self)
     end
 
+    def diff_with_colony
+      colony_params = colony.params
+      @params.inject({}){ |res, kv|
+        res[kv[0]] = kv[1] if colony_params[kv[0]] != kv[1]
+        res
+      }
+    end
+
+    def from_hash(data)
+      @type = data[:type]
+      @status = data[:status]
+      @executeion_status = data[:executeion_status]
+      @prior = data[:prior]
+      @output = data[:output]
+    end
+
+    def to_hash
+      {
+        :type => @type,
+        :params => diff_with_colony,
+        :status => @status,
+        :execution_status => @execution_status,
+        :prior => @prior,
+        :output => @output
+      }
+    end
+
     def priority(creep_params)
       priority = @prior
       params.each{|param,value|
