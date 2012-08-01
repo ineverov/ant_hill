@@ -145,6 +145,7 @@ module AntHill
       creeps.each{|creep|
         creep.active = true
       }
+      @active = true
     end
 
     def find_colonies(params)
