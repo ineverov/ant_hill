@@ -39,7 +39,7 @@ module AntHill
       {
         :id => object_id,
         :current_params => @current_params,
-        :cutom_data => @custom_data,
+        :custom_data => @custom_data,
         :status => @status,
         :processed => @processed,
         :passed => @passed,

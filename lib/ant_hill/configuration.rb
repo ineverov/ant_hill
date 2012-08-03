@@ -8,7 +8,16 @@ module AntHill
       @config_file = ''
       @configuration = {}
     end
-    
+   
+    def to_hash
+      {:init_time => @init_time}
+    end
+
+    def from_hash(hash)
+      if hash
+        @init_time = hash[:init_time]
+      end
+    end 
     def parse_yaml(filename)
       @config_file = filename
       begin
