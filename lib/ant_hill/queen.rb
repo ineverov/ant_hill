@@ -145,6 +145,7 @@ module AntHill
       creeps.each{|creep|
         creep.active = true
       }
+      @active = true
     end
 
     def find_colonies(params)
@@ -179,6 +180,7 @@ module AntHill
     def from_hash(hash)
       colonies = hash[:colonies]
       tmp = {}
+      @config.from_hash(hash[:configuration])
       colonies.each do |col|
         colony = create_colony({},col)
         tmp[col[:id]] = colony
@@ -191,7 +193,8 @@ module AntHill
       {
         :colonies => @colonies.collect{|ac| ac.to_hash(include_finished) },
         :colony_queue => @colony_queue.collect{|ac| ac.object_id },
-        :creeps => @creeps.collect{|c| c.to_hash } 
+        :creeps => @creeps.collect{|c| c.to_hash }
+        :configuration => @config.to_hash 
       }
     end
 
