@@ -193,7 +193,7 @@ module AntHill
       {
         :colonies => @colonies.collect{|ac| ac.to_hash(include_finished) },
         :colony_queue => @colony_queue.collect{|ac| ac.object_id },
-        :creeps => @creeps.collect{|c| c.to_hash }
+        :creeps => @creeps.collect{|c| c.to_hash },
         :configuration => @config.to_hash 
       }
     end
