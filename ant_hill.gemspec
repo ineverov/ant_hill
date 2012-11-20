@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.authors     = ["Ivan Neverov"]
   s.email       = ["ineverov@sphereconsultinginc.com"]
   s.homepage    = ""
-  s.summary     = %q{Run tests in grip}
+  s.summary     = %q{Run tests in grid}
   s.description = %q{Run tests in grid}
 
   s.rubyforge_project = "ant_hill"
@@ -19,6 +19,6 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   # specify any dependencies here; for example:
-  s.add_development_dependency "ruby-debug19"
+  #s.add_development_dependency "ruby-debug19"
   s.add_runtime_dependency "net-ssh"
 end
