@@ -13,7 +13,7 @@ module AntHill
 
     def get_connection
       @connection_pool.delete_if{ |connection| closed?(connection) }
-      connection = @connection_pool.first
+      connection = @connection_pool.find{|c| !c.busy?}
       return connection if connection
       new_conn = get_new
       @connection_pool << new_conn

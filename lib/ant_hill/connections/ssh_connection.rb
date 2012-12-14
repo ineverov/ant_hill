@@ -15,6 +15,8 @@ module AntHill
       ssh =  Net::SSH.start(creep.host, creep.user, {:password => creep.password, :verbose => (ENV['SSH_DEBUG'] && ENV['SSH_DEBUG'].to_sym) || :fatal })
       ssh.send_global_request("keepalive@openssh.com")
       ssh
+    rescue Net::SSH::Exception => ex
+      logger.error "There was an exception in method get_new for SSConnection. Details #{ex}:\n#{ex.backtrace}"
     end
     
     def execute(connection, command)
@@ -25,6 +27,8 @@ module AntHill
         stdout << data if stream == :stdout
       end
       [stdout, stderr]
+    rescue Net::SSH::Exception => ex
+      logger.error "There was an exception in method execute for SSConnection. Details #{ex}:\n#{ex.backtrace}"
     end
 
     def kill_connection(connection)
