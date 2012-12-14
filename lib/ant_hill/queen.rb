@@ -198,6 +198,8 @@ module AntHill
       }
     end
 
+    def active?; @active; end
+
     class << self
       def locked?
         @@mutex.locked?
