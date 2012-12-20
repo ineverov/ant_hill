@@ -106,7 +106,9 @@ module AntHill
         ok = timeout_execution(timeout, "setup #{ant.params.inspect}") do
           @modifier.setup_ant(ant)
         end
-        ok &&= @modifier.check(ant)
+        ok &&= timeout_execution( timeout , "check params is #{ant.params.inspect}") do #FIXME: Should we have other value for timeout?
+          @modifier.check(ant)
+        end
       rescue => e
         logger.error "There was an error processing setup and check: #{e}:\n #{e.backtrace}"
       end
