@@ -8,7 +8,11 @@ module AntHill
     end
     def exec(command)
       conn = get_connection
-      execute(conn, command)
+      if conn
+        execute(conn, command)
+      else
+        logger.error "Couldn't find any free connection or create new one"
+      end
     end
 
     def get_connection
@@ -16,7 +20,7 @@ module AntHill
       connection = @connection_pool.find{|c| !c.busy?}
       return connection if connection
       new_conn = get_new
-      @connection_pool << new_conn
+      @connection_pool << new_conn if new_conn
       new_conn
     end
 
