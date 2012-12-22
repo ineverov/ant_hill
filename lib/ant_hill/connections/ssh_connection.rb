@@ -17,6 +17,7 @@ module AntHill
       ssh
     rescue Net::SSH::Exception => ex
       logger.error "There was an exception in method get_new for SSConnection. Details #{ex}:\n#{ex.backtrace}"
+      return nil
     end
     
     def execute(connection, command)
@@ -28,7 +29,8 @@ module AntHill
       end
       [stdout, stderr]
     rescue Net::SSH::Exception => ex
-      logger.error "There was an exception in method execute for SSConnection. Details #{ex}:\n#{ex.backtrace}"
+      logger.error "There was an exception in method execute for SSHConnection. Details #{ex}:\n#{ex.backtrace}"
+      ["", ""]
     end
 
     def kill_connection(connection)
