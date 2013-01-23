@@ -8,8 +8,9 @@ module AntHill
         verbose = config.log_level
         path = config.log_dir
         FileUtils.mkdir_p path unless File.exists?(path)
-        logger = Logger.new(path+"/#{name}.log")
+        logger = Logger.new(path+"/#{name}.log", (config.log_num_old_files) || 5, (config.log_size || 50*1024*1024) )
         logger.level = level(config.log_level)
+        logger.formatter = Logger::Formatter.new
         @@loggers[name] = logger 
       end
       private
