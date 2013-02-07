@@ -57,7 +57,7 @@ module AntHill
         before_process(ant)
         ok = setup(ant)
         if ok
-          @current_params = ant.params
+          @current_params = ant.params.clone
           run(ant)
         else
           setup_failed(ant)
