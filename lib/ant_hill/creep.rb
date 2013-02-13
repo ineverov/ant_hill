@@ -197,7 +197,6 @@ module AntHill
     end
 
     def change_status(status)
-      return if @status == status
       @status = status
       @start_time = Time.now
     end
