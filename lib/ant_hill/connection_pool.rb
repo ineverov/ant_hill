@@ -8,11 +8,15 @@ module AntHill
     end
     def exec(command)
       conn = get_connection
-      if conn
-        execute(conn, command)
-      else
-        logger.error "Couldn't find any free connection or create new one"
-        ['', '']
+      begin
+        if conn
+          execute(conn, command)
+        else
+          logger.error "Couldn't find any free connection or create new one"
+          ['', '']
+        end
+      rescue Timeout::Error => ex
+        kill_connection(conn)
       end
     end
 
