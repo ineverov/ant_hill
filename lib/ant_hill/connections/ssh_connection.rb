@@ -18,7 +18,7 @@ module AntHill
     rescue Net::SSH::Exception => ex
       logger.error "There was an exception in method get_new for SSConnection. Details #{ex}:\n#{ex.backtrace}"
       return nil
-    rescue SystemCallError => err
+    rescue SystemCallError => ex
       logger.error "There was an system error in method get_new for SSConnection. Details #{ex}:\n#{ex.backtrace}"
       return nil
     end
