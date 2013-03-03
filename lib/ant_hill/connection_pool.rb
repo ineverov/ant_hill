@@ -12,6 +12,7 @@ module AntHill
         execute(conn, command)
       else
         logger.error "Couldn't find any free connection or create new one"
+        ['', '']
       end
     end
 
