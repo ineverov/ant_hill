@@ -7,7 +7,7 @@ module AntHill
       @colony = colony
       @config = config
       @output = ''
-      @params = colony.params.merge(params)
+      @params = params
 
       @status = :not_started
       @execution_status = :queued
