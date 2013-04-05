@@ -1,6 +1,6 @@
 module AntHill
   class Ant
-    attr_reader :type, :params, :colony, :status, :config
+    attr_reader :type, :colony, :status, :config
     attr_accessor :execution_status, :runner, :prior, :output
     include DRbUndumped
     def initialize(params, colony, config = Configuration.config)
@@ -16,13 +16,17 @@ module AntHill
       @prior += colony.get_priority
     end
 
+    def params
+      @colony.params.merge(@params)
+    end
+
     def to_s
       @colony.ant_to_s(self)
     end
 
     def diff_with_colony
       colony_params = colony.params
-      @params.inject({}){ |res, kv|
+      params.inject({}){ |res, kv|
         res[kv[0]] = kv[1] if colony_params[kv[0]] != kv[1]
         res
       }
