@@ -155,7 +155,11 @@ module AntHill
     end
 
     def kill_colony(params)
-      to_kill = find_colonies(params)
+      if params.is_a?(AntColony)
+        to_kill = [ params ]
+      else
+        to_kill = find_colonies(params)
+      end
       @@mutex.synchronize{
         to_kill.each do |colony|
           colony.kill

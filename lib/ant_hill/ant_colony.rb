@@ -98,6 +98,8 @@ module AntHill
           colony_finished
         rescue => e
           logger.error "There was an error processing colony_finished method for #{self.class}: #{e}\n#{e.backtrace}"
+        ensure 
+          Queen.queen.kill_colony(self)
         end
       end
     end
