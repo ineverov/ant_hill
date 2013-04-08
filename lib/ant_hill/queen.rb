@@ -166,6 +166,7 @@ module AntHill
           @ants.reject!{|ant|
             ant.colony == colony
           }
+          @colonies.delete(colony)
         end
       }
     end
