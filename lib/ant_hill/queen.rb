@@ -107,14 +107,14 @@ module AntHill
       return nil if @ants.empty?
       winner = nil
       @@mutex.synchronize{
-        ants = prioritized_ants(params)
-        winner = ants.pop
+        winner = min_ant(params)
+        @ants.delete(min) if min
       }
       winner
     end
 
-    def prioritized_ants(params)
-      @ants.sort! do |a,b|
+    def min_ant(params)
+      @ants.min do |a,b|
         a.priority(params) <=> b.priority(params)
       end
     end
@@ -122,7 +122,6 @@ module AntHill
     def locked?
       @lock
     end
-
 
     def logger
       Log.logger_for(:queen)
