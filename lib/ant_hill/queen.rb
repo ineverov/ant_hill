@@ -108,7 +108,7 @@ module AntHill
       winner = nil
       @@mutex.synchronize{
         winner = min_ant(params)
-        @ants.delete(min) if min
+        @ants.delete(winner) if winner
       }
       winner
     end
