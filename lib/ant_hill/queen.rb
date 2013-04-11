@@ -107,14 +107,14 @@ module AntHill
       return nil if @ants.empty?
       winner = nil
       @@mutex.synchronize{
-        winner = min_ant(params)
+        winner = max_priority_ant(params)
         @ants.delete(winner) if winner
       }
       winner
     end
 
-    def min_ant(params)
-      @ants.min do |a,b|
+    def max_priority_ant(params)
+      @ants.max do |a,b|
         a.priority(params) <=> b.priority(params)
       end
     end
