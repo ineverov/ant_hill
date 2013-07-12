@@ -7,8 +7,8 @@ module AntHill
       @connection_pool = []
     end
     def exec(command)
-      conn = get_connection
       begin
+        conn = get_connection
         if conn
           execute(conn, command)
         else
@@ -16,7 +16,9 @@ module AntHill
           ['', '']
         end
       rescue Timeout::Error => ex
-        kill_connection(conn)
+        logger.error "There was an error during execution #{command} on #{@creep}. Details: #{ex}\n#{ex.backtrace}"
+        kill_connection(conn) if conn
+        ['', '']
       end
     end
 
