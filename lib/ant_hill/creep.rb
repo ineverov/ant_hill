@@ -103,10 +103,10 @@ module AntHill
       ok = false
       begin
         logger.debug "executing setup method with timeout #{timeout}" 
-        ok = timeout_execution(timeout, "setup #{ant.params.inspect}") do
+        ok = timeout_execution(timeout, "setup #{ant.params.inspect}", false) do
           @modifier.setup_ant(ant)
         end
-        ok &&= timeout_execution( timeout , "check params is #{ant.params.inspect}") do #FIXME: Should we have other value for timeout?
+        ok &&= timeout_execution( timeout , "check params is #{ant.params.inspect}", false ) do #FIXME: Should we have other value for timeout?
           @modifier.check(ant)
         end
       rescue => e
@@ -147,8 +147,8 @@ module AntHill
       stdout
     end
 
-    def timeout_execution(timeout=nil, process = nil)
-      result = ['','']
+    def timeout_execution(timeout=nil, process = nil, default_response = ['', ''])
+      result = default_response
       begin
         if timeout
           Timeout::timeout( timeout ) do
