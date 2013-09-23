@@ -47,16 +47,6 @@ module AntHill
       }
     end
 
-    def priority(creep_params)
-      priority = @prior
-      params.each{|param,value|
-        unless value == creep_params[param]
-          priority -= colony.change_time_for_param(param)
-        end
-      }
-      priority
-    end
-
     def return_to_queue(queen = Queen.queen)
       queen.add_ants([self])
     end

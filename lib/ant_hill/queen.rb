@@ -103,19 +103,19 @@ module AntHill
       @ants += ants
     end
 
-    def find_ant(params)
+    def find_ant(creep)
       return nil if @ants.empty?
       winner = nil
       @@mutex.synchronize{
-        winner = max_priority_ant(params)
+        winner = max_priority_ant(creep)
         @ants.delete(winner) if winner
       }
       winner
     end
 
-    def max_priority_ant(params)
+    def max_priority_ant(creep)
       @ants.max do |a,b|
-        a.priority(params) <=> b.priority(params)
+        creep.priority(a) <=> creep.priority(b)
       end
     end
 
