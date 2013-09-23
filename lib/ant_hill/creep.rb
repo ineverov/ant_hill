@@ -21,7 +21,12 @@ module AntHill
         sleep rand
       end
 
-      ant = @queen.find_ant(@current_params)
+      ant = @queen.find_ant(creep)
+    end
+
+    def priority(ant)
+      mod = modifier(ant)
+      ant.prior - mod.get_setup_time(ant)
     end
 
     def from_hash(hash)
@@ -33,6 +38,10 @@ module AntHill
       @active = hash[:active] || true
       @start_time = hash[:start_time] || Time.now
       @hill_cfg.merge!(hash[:hill_cfg] || {})
+    end
+
+    def modifier(ant)
+      @modifiers[ant.type] ||= ant.colony.creep_modifier_class.new(self)
     end
 
     def to_hash
@@ -51,7 +60,7 @@ module AntHill
 
     def setup_and_process_ant(ant)
       @current_ant = ant
-      @modifier = ant.colony.creep_modifier_class.new(self)
+      @modifier = modifier(ant)
       ant.start
       begin
         before_process(ant)
