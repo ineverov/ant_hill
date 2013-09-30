@@ -14,6 +14,7 @@ module AntHill
       @passed = 0
       @active = true
       @start_time = Time.now
+      @modifiers = {}
     end
    
     def require_ant
@@ -21,7 +22,10 @@ module AntHill
         sleep rand
       end
 
-      ant = @queen.find_ant(creep)
+      time = Time.now
+      ant = @queen.find_ant(self)
+      logger.debug "Find min ant took #{Time.now - time}"
+      ant
     end
 
     def priority(ant)
@@ -104,7 +108,7 @@ module AntHill
     def setup(ant)
       timeout = 0
       begin 
-        timeout = @modifier.get_setup_time(ant, @current_params)
+        timeout = @modifier.get_setup_time(ant)
       rescue => e
         logger.error "There was an error getting setup time: #{e}:\n #{e.backtrace}"
       end
