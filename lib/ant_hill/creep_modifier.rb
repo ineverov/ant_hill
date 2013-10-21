@@ -67,7 +67,7 @@ module AntHill
     end
 
     # Can be redefined in child class
-    def get_setup_time(ant, params)
+    def get_setup_time(ant)
     end
     
     def get_run_time(ant)

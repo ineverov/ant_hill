@@ -87,7 +87,7 @@ module AntHill
         while true do
           if @active
             @colony_processor_busy = true
-            colony = @colony_queue.pop
+            colony = @colony_queue.shift
             if colony
               new_ants = colony.get_ants
               add_ants(new_ants)
@@ -103,19 +103,19 @@ module AntHill
       @ants += ants
     end
 
-    def find_ant(params)
+    def find_ant(creep)
       return nil if @ants.empty?
       winner = nil
       @@mutex.synchronize{
-        winner = max_priority_ant(params)
+        winner = max_priority_ant(creep)
         @ants.delete(winner) if winner
       }
       winner
     end
 
-    def max_priority_ant(params)
+    def max_priority_ant(creep)
       @ants.max do |a,b|
-        a.priority(params) <=> b.priority(params)
+        creep.priority(a) <=> creep.priority(b)
       end
     end
 
@@ -129,10 +129,7 @@ module AntHill
 
     def suspend
       @active = false
-      creeps.each{|creep|
-        creep.active = false
-      }
-      while creeps.any?{|creep| creep.status != :disabled }
+      while creeps.any?{|creep| creep.busy? }
         sleep 1
       end
       while @colony_processor_busy
@@ -190,7 +187,7 @@ module AntHill
         tmp[col[:id]] = colony
       end
       @colonies.each{|c| add_ants(c.ants)}
-      @colony_queue = colonies.collect{|cq| tmp[cq]}
+      @colony_queue = hash[:colony_queue].collect{|cq| tmp[cq]}
     end
 
     def to_hash(include_finished = false)
