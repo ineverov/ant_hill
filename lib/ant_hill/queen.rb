@@ -87,7 +87,7 @@ module AntHill
         while true do
           if @active
             @colony_processor_busy = true
-            colony = @colony_queue.pop
+            colony = @colony_queue.shift
             if colony
               new_ants = colony.get_ants
               add_ants(new_ants)
@@ -190,7 +190,7 @@ module AntHill
         tmp[col[:id]] = colony
       end
       @colonies.each{|c| add_ants(c.ants)}
-      @colony_queue = colonies.collect{|cq| tmp[cq]}
+      @colony_queue = hash[:colony_queue].collect{|cq| tmp[cq]}
     end
 
     def to_hash(include_finished = false)
