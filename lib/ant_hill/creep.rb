@@ -39,7 +39,7 @@ module AntHill
       @status = hash[:status] || :wait
       @processed = hash[:processed] || 0
       @passed = hash[:passed] || 0
-      @active = hash[:active] || true
+      @active = hash[:active].nil? ? true : hash[:active]
       @start_time = hash[:start_time] || Time.now
       @hill_cfg.merge!(hash[:hill_cfg] || {})
     end
@@ -186,14 +186,17 @@ module AntHill
 
     def active?; @active; end
 
-    def service
-      while true
+    def busy?
+      !(@status == :wait || @status == :disabled || @status == :error)
+    end
 
+    def service
+      loop do
         if !active? 
           logger.debug("Node was disabled")
           change_status(:disabled) 
           sleep @config.sleep_interval
-        elsif ant = self.require_ant 
+        elsif @queen.active? && ant = self.require_ant 
           logger.debug("Setupping and processing ant")
           setup_and_process_ant(ant)
         else

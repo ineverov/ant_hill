@@ -129,10 +129,7 @@ module AntHill
 
     def suspend
       @active = false
-      creeps.each{|creep|
-        creep.active = false
-      }
-      while creeps.any?{|creep| creep.status != :disabled }
+      while creeps.any?{|creep| creep.busy? }
         sleep 1
       end
       while @colony_processor_busy
