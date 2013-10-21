@@ -138,9 +138,6 @@ module AntHill
     end
 
     def release
-      creeps.each{|creep|
-        creep.active = true
-      }
       @active = true
     end
 
