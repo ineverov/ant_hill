@@ -75,6 +75,9 @@ module AntHill
         else
           setup_failed(ant)
         end
+      rescue NoFreeConnectionError => e
+        @active = false
+        logger.error "#{e}\n#{e.backtrace}" 
       rescue => e
         change_status(:error)
         logger.error "#{e}\n#{e.backtrace}" 
@@ -173,8 +176,6 @@ module AntHill
       rescue Timeout::Error => e
         change_status(:error)
         logger.error "#{self.host}: timeout error for #{process.to_s}"
-#      rescue Exception => e
-#        logger.error "#{e}\n#{e.backtrace}"
       end
       result
     end
