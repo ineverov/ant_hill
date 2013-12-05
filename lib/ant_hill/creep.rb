@@ -163,6 +163,12 @@ module AntHill
       stdout
     end
 
+    def run_once(command, timeout = nil)
+      exec!(command,timeout)    
+    rescue NoFreeConnectionError => ex
+      ex
+    end
+
     def timeout_execution(timeout=nil, process = nil, default_response = ['', ''])
       result = default_response
       begin
