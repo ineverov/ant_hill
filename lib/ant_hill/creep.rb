@@ -193,6 +193,11 @@ module AntHill
 
     def active?; @active; end
 
+    def disable!
+      @active = false
+      change_status(:disabled)
+    end
+
     def busy?
       !(@status == :wait || @status == :disabled || @status == :error)
     end

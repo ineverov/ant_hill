@@ -1,8 +1,8 @@
 module AntHill
+  class NoFreeConnectionError < Exception; end
   class ConnectionPool
     attr_reader :creep
     include DRbUndumped
-    class NoFreeConnectionError < Exception; end
     def initialize(creep)
       @creep = creep
       @connection_pool = []

@@ -117,6 +117,10 @@ module AntHill
       @ants.max do |a,b|
         creep.priority(a) <=> creep.priority(b)
       end
+    rescue NoFreeConnectionError => e
+      logger.error "Couldn't find any free connection for creep #{creep}. #{e}: #{e.backtrace.join("\n")}"
+      creep.disable!
+      nil
     end
 
     def locked?
