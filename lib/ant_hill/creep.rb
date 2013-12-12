@@ -193,9 +193,9 @@ module AntHill
 
     def active?; @active; end
 
-    def disable!
+    def disable!(&block)
       @active = false
-      change_status(:disabled)
+      change_status(:disabled, &block)
     end
 
     def busy?
@@ -227,6 +227,7 @@ module AntHill
     def change_status(status)
       @status = status
       @start_time = Time.now
+      yield if block_given?
     end
   end
 end
