@@ -1,4 +1,5 @@
 module AntHill
+  class NoFreeConnectionError < Exception; end
   class ConnectionPool
     attr_reader :creep
     include DRbUndumped
@@ -12,7 +13,7 @@ module AntHill
         execute(conn, command)
       else
         logger.error "Couldn't find any free connection or create new one"
-        ['', '']
+        raise NoFreeConnectionError
       end
     end
 
@@ -23,6 +24,8 @@ module AntHill
       new_conn = nil
       Timeout::timeout( 10 ) do
         new_conn = get_new
+      rescue Timeout::Error => e
+        return nil
       end
       @connection_pool << new_conn if new_conn
       new_conn

@@ -75,6 +75,9 @@ module AntHill
         else
           setup_failed(ant)
         end
+      rescue NoFreeConnectionError => e
+        @active = false
+        logger.error "#{e}\n#{e.backtrace}" 
       rescue => e
         change_status(:error)
         logger.error "#{e}\n#{e.backtrace}" 
@@ -160,6 +163,12 @@ module AntHill
       stdout
     end
 
+    def run_once(command, timeout = nil)
+      exec!(command,timeout)    
+    rescue NoFreeConnectionError => ex
+      ex
+    end
+
     def timeout_execution(timeout=nil, process = nil, default_response = ['', ''])
       result = default_response
       begin
@@ -173,8 +182,6 @@ module AntHill
       rescue Timeout::Error => e
         change_status(:error)
         logger.error "#{self.host}: timeout error for #{process.to_s}"
-#      rescue Exception => e
-#        logger.error "#{e}\n#{e.backtrace}"
       end
       result
     end
@@ -185,6 +192,11 @@ module AntHill
     end
 
     def active?; @active; end
+
+    def disable!(&block)
+      @active = false
+      change_status(:disabled, &block)
+    end
 
     def busy?
       !(@status == :wait || @status == :disabled || @status == :error)
@@ -215,6 +227,7 @@ module AntHill
     def change_status(status)
       @status = status
       @start_time = Time.now
+      yield if block_given?
     end
   end
 end
