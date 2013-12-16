@@ -24,6 +24,8 @@ module AntHill
       new_conn = nil
       Timeout::timeout( 10 ) do
         new_conn = get_new
+      rescue Timeout::Error => e
+        return nil
       end
       @connection_pool << new_conn if new_conn
       new_conn
