@@ -22,8 +22,8 @@ module AntHill
       cm = double(:creep_modifier)
       cmc.stub(:change_time_for_param){|param|
         case param
-          when 'a': 1
-          when 'b': 2
+          when 'a' then 1
+          when 'b' then 2
           else
             0
         end
@@ -33,8 +33,8 @@ module AntHill
       ac.stub(:creep_modifier_class){cmc}
       ac.stub(:change_time_for_param){|param|
         case param
-          when 'a': 1
-          when 'b': 2
+          when 'a' then 1
+          when 'b' then 2
           else
             0
         end

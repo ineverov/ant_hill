@@ -27,8 +27,10 @@ module AntHill
       connection = @connection_pool.find{|c| !c.busy?}
       return connection if connection
       new_conn = nil
-      Timeout::timeout( 10 ) do
-        new_conn = get_new
+      begin
+        Timeout::timeout( 10 ) do
+          new_conn = get_new
+        end
       rescue Timeout::Error => e
         return nil
       end
