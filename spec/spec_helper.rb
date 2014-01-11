@@ -1,1 +1,1 @@
-require "lib/ant_hill"
+require "ant_hill"
