@@ -14,6 +14,7 @@ module AntHill
       @passed = 0
       @active = true
       @start_time = Time.now
+      @modifiers = {}
     end
    
     def require_ant
@@ -21,7 +22,15 @@ module AntHill
         sleep rand
       end
 
-      ant = @queen.find_ant(@current_params)
+      time = Time.now
+      ant = @queen.find_ant(self)
+      logger.debug "Find min ant took #{Time.now - time}"
+      ant
+    end
+
+    def priority(ant)
+      mod = modifier(ant)
+      ant.prior - mod.get_setup_time(ant)
     end
 
     def from_hash(hash)
@@ -30,9 +39,13 @@ module AntHill
       @status = hash[:status] || :wait
       @processed = hash[:processed] || 0
       @passed = hash[:passed] || 0
-      @active = hash[:active] || true
+      @active = hash[:active].nil? ? true : hash[:active]
       @start_time = hash[:start_time] || Time.now
       @hill_cfg.merge!(hash[:hill_cfg] || {})
+    end
+
+    def modifier(ant)
+      @modifiers[ant.type] ||= ant.colony.creep_modifier_class.new(self)
     end
 
     def to_hash
@@ -51,7 +64,7 @@ module AntHill
 
     def setup_and_process_ant(ant)
       @current_ant = ant
-      @modifier = ant.colony.creep_modifier_class.new(self)
+      @modifier = modifier(ant)
       ant.start
       begin
         before_process(ant)
@@ -100,7 +113,7 @@ module AntHill
     def setup(ant)
       timeout = 0
       begin 
-        timeout = @modifier.get_setup_time(ant, @current_params)
+        timeout = @modifier.get_setup_time(ant)
       rescue => e
         logger.error "There was an error getting setup time: #{e}:\n #{e.backtrace}"
       end
@@ -108,10 +121,10 @@ module AntHill
       ok = false
       begin
         logger.debug "executing setup method with timeout #{timeout}" 
-        ok = timeout_execution(timeout, "setup #{ant.params.inspect}") do
+        ok = timeout_execution(timeout, "setup #{ant.params.inspect}", false) do
           @modifier.setup_ant(ant)
         end
-        ok &&= timeout_execution( timeout , "check params is #{ant.params.inspect}") do #FIXME: Should we have other value for timeout?
+        ok &&= timeout_execution( timeout , "check params is #{ant.params.inspect}", false ) do #FIXME: Should we have other value for timeout?
           @modifier.check(ant)
         end
       rescue => e
@@ -152,8 +165,14 @@ module AntHill
       stdout
     end
 
-    def timeout_execution(timeout=nil, process = nil)
-      result = ['','']
+    def run_once(command, timeout = nil)
+      exec!(command,timeout)    
+    rescue NoFreeConnectionError => ex
+      ex
+    end
+
+    def timeout_execution(timeout=nil, process = nil, default_response = ['', ''])
+      result = default_response
       begin
         if timeout
           Timeout::timeout( timeout ) do
@@ -165,8 +184,6 @@ module AntHill
       rescue Timeout::Error => e
         change_status(:error)
         logger.error "#{self.host}: timeout error for #{process.to_s}"
-#      rescue Exception => e
-#        logger.error "#{e}\n#{e.backtrace}"
       end
       result
     end
@@ -178,14 +195,22 @@ module AntHill
 
     def active?; @active; end
 
-    def service
-      while true
+    def disable!(&block)
+      @active = false
+      change_status(:disabled, &block)
+    end
 
+    def busy?
+      !(@status == :wait || @status == :disabled || @status == :error)
+    end
+
+    def service
+      loop do
         if !active? 
           logger.debug("Node was disabled")
           change_status(:disabled) 
           sleep @config.sleep_interval
-        elsif ant = self.require_ant 
+        elsif @queen.active? && ant = self.require_ant 
           logger.debug("Setupping and processing ant")
           setup_and_process_ant(ant)
         else
