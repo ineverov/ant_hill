@@ -76,7 +76,9 @@ module AntHill
           setup_failed(ant)
         end
       rescue NoFreeConnectionError => e
-        @active = false
+        disable!
+        custom_data['disable_reason'] = :no_free_connections
+        custom_data['disable_description'] = 'Cannot find free connection or create new one'
         logger.error "#{e}\n#{e.backtrace}" 
       rescue => e
         change_status(:error)
@@ -227,7 +229,7 @@ module AntHill
     def change_status(status)
       @status = status
       @start_time = Time.now
-      yield if block_given?
+      yield(self) if block_given?
     end
   end
 end
