@@ -77,8 +77,8 @@ module AntHill
         end
       rescue NoFreeConnectionError => e
         disable!
-        custom_data['disable_reason'] = :no_free_connections
-        custom_data['disable_description'] = 'Cannot find free connection or create new one'
+        custom_data['disabled_reason'] = :no_free_connections
+        custom_data['disabled_description'] = 'Cannot find free connection or create new one'
         logger.error "#{e}\n#{e.backtrace}" 
       rescue => e
         change_status(:error)
