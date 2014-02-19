@@ -7,6 +7,7 @@ module AntHill
       @params = params
       @config = config
       @logger = Log.logger_for(:ant_colony, config)
+      @created_at = Time.now
       @ants = []
       @started = false
     end
@@ -114,10 +115,6 @@ module AntHill
         return pr
       end
     end
-    
-    def change_time_for_param(param)
-      creep_modifier_class.change_time_for_param(param)
-    end
 
     def kill
       ants.each do |ant|
@@ -131,7 +128,7 @@ module AntHill
     end
 
     def priority
-      0
+      -created_at.to_i
     end
 
     def ant_to_s(ant)
