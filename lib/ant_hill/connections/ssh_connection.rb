@@ -33,6 +33,11 @@ module AntHill
       [stdout, stderr]
     rescue Net::SSH::Exception => ex
       logger.error "There was an exception in method execute for SSHConnection. Details #{ex}:\n#{ex.backtrace}"
+      kill_connection(connection)
+      ["", ""]
+    rescue SystemCallError => ex
+      logger.error "There was an system error in method get_new for SSConnection. Details #{ex}:\n#{ex.backtrace}"
+      kill_connection(connection)
       ["", ""]
     end
 
