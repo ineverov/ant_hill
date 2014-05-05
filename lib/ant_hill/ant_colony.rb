@@ -147,5 +147,8 @@ module AntHill
     
     def after_search
     end
+
+    def interested_params
+    end
   end
 end

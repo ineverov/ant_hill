@@ -1,12 +1,34 @@
 module AntHill
   class Creep
     attr_reader :host, :user, :password, :status, :connection_pool, :logger, :processed, :passed, :start_time, :hill_cfg, :current_ant
-    attr_accessor :active, :current_params, :custom_data
+    attr_accessor :active, :custom_data
     include DRbUndumped
+    module Trackable
+      def self.extended(obj)
+        class << obj 
+          attr_reader :changed_params
+          alias :"old []=" :[]=  
+          def reset_changed
+            @changed_params = []
+          end
+
+          def []=(key, new_value)
+            old_value = self[key] if has_key?(key)
+            method(:"old []=").call(key,new_value)
+            if old_value != new_value
+              @changed_params ||= []
+              @changed_params << key unless @changed_params.index(key)
+            end
+          end
+        end
+      end
+    end
+
     def initialize(queen=Queen.queen, config=Configuration.config)
       @config = config
       @queen = queen
       @current_params = {}
+      @current_params.extend(Trackable)
       @custom_data = {}
       @status = :wait
       @current_ant = nil
@@ -15,6 +37,23 @@ module AntHill
       @active = true
       @start_time = Time.now
       @modifiers = {}
+      @changed_params = []
+    end
+    
+    def current_params
+      @current_params
+    end
+
+    def changed_params
+      current_params.changed_params
+    end
+
+    def current_params=(new_params)
+      @current_params = {}
+      @current_params.extend(Trackable)
+      new_params.each do |k,v|
+        @current_params[k]=v
+      end
     end
    
     def require_ant
@@ -66,6 +105,7 @@ module AntHill
       @current_ant = ant
       @modifier = modifier(ant)
       ant.start
+      @current_params.reset_changed
       begin
         before_process(ant)
         ok = setup(ant)
@@ -86,6 +126,7 @@ module AntHill
       ensure
         ant.finish
         after_process(ant)
+        Queen.queen.reset_priority_for_creep(self)
         @processed+=1
         @passed +=1 if @current_ant.execution_status.to_sym == :passed
         @current_ant = nil
