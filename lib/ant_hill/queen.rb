@@ -117,6 +117,7 @@ module AntHill
       max_ant = nil
       max_priority =-Float::INFINITY
       @ants.each do |a|
+        next if a.prior < max_priority
         if (prior=a.priority_cache(creep)) > max_priority
           max_priority = prior
           max_ant = a

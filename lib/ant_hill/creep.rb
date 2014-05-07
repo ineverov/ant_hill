@@ -49,8 +49,6 @@ module AntHill
     end
 
     def current_params=(new_params)
-      @current_params = {}
-      @current_params.extend(Trackable)
       new_params.each do |k,v|
         @current_params[k]=v
       end
@@ -73,7 +71,7 @@ module AntHill
     end
 
     def from_hash(hash)
-      @current_params = hash[:current_parmas] || {}
+      @current_params = (hash[:current_parmas] || {}).tap{|cp| cp.extend(Trackable)}
       @custom_data = hash[:custom_data] || {}
       @status = hash[:status] || :wait
       @processed = hash[:processed] || 0
@@ -90,7 +88,7 @@ module AntHill
     def to_hash
       {
         :id => object_id,
-        :current_params => @current_params,
+        :current_params => current_params,
         :custom_data => @custom_data,
         :status => @status,
         :processed => @processed,
@@ -105,12 +103,12 @@ module AntHill
       @current_ant = ant
       @modifier = modifier(ant)
       ant.start
-      @current_params.reset_changed
+      current_params.reset_changed
       begin
         before_process(ant)
         ok = setup(ant)
         if ok
-          @current_params = ant.params.clone
+          self.current_params = ant.params.clone
           run(ant)
         else
           setup_failed(ant)
