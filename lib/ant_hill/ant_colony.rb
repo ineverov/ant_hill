@@ -41,6 +41,14 @@ module AntHill
       logger.error "Colony will die without creep modifier ;("
     end
 
+    def params_for_ant
+      params.inject({}) do |hash,kv| 
+        if !inherited_params || inherited_params.include?(kv[0])
+          hash[kv[0]]=hash[kv[1]]
+        end
+        hash
+      end
+    end
 
     def spoiled?
       !@creep_modifier
@@ -149,6 +157,9 @@ module AntHill
     end
 
     def interested_params
+    end
+
+    def inherited_params
     end
   end
 end

@@ -104,31 +104,26 @@ module AntHill
       @modifier = modifier(ant)
       ant.start
       current_params.reset_changed
-      begin
+      safe do
         before_process(ant)
         ok = setup(ant)
         if ok
-          self.current_params = ant.params.clone
+          ant.params.each do |k,v|
+            if !@modifier.creep_params || @modifier.creep_params.include?(kv[0])
+              self.current_params[k]=v
+            end
+          end
           run(ant)
         else
           setup_failed(ant)
         end
-      rescue NoFreeConnectionError => e
-        disable!
-        custom_data['disabled_reason'] = :no_free_connections
-        custom_data['disabled_description'] = 'Cannot find free connection or create new one'
-        logger.error "#{e}\n#{e.backtrace}" 
-      rescue => e
-        change_status(:error)
-        logger.error "#{e}\n#{e.backtrace}" 
-      ensure
-        ant.finish
-        after_process(ant)
-        Queen.queen.reset_priority_for_creep(self)
-        @processed+=1
-        @passed +=1 if @current_ant.execution_status.to_sym == :passed
-        @current_ant = nil
       end
+      ant.finish
+      safe{ after_process(ant) }
+      Queen.queen.reset_priority_for_creep(self)
+      @processed+=1
+      @passed +=1 if @current_ant.execution_status.to_sym == :passed
+      @current_ant = nil
     end
 
     def before_process(ant)
@@ -269,6 +264,20 @@ module AntHill
       @status = status
       @start_time = Time.now
       yield(self) if block_given?
+    end
+
+    def safe
+      begin
+        yield
+      rescue NoFreeConnectionError => e
+        disable!
+        custom_data['disabled_reason'] = :no_free_connections
+        custom_data['disabled_description'] = 'Cannot find free connection or create new one'
+        logger.error "#{e}\n#{e.backtrace}" 
+      rescue => e
+        change_status(:error)
+        logger.error "#{e}\n#{e.backtrace}" 
+      end
     end
   end
 end
