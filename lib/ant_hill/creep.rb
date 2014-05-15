@@ -128,41 +128,27 @@ module AntHill
 
     def before_process(ant)
       @modifier.before_process(ant)
-    rescue => e
-      logger.error "There was an error during before_process method: #{e}:\n #{e.backtrace}"
     end
 
     def after_process(ant)
       @modifier.after_process(ant)
-    rescue => e
-      logger.error "There was an error during after_process method: #{e}:\n #{e.backtrace}"
     end
 
     def setup_failed(ant)
       @modifier.setup_failed(ant)
-    rescue => e
-      logger.error "There was an error during setup_failed method: #{e}:\n #{e.backtrace}"
     end
 
     def setup(ant)
       timeout = 0
-      begin 
-        timeout = @modifier.get_setup_time(ant)
-      rescue => e
-        logger.error "There was an error getting setup time: #{e}:\n #{e.backtrace}"
-      end
+      timeout = @modifier.get_setup_time(ant)
       change_status(:setup)
       ok = false
-      begin
-        logger.debug "executing setup method with timeout #{timeout}" 
-        ok = timeout_execution(timeout, "setup #{ant.params.inspect}", false) do
-          @modifier.setup_ant(ant)
-        end
-        ok &&= timeout_execution( timeout , "check params is #{ant.params.inspect}", false ) do #FIXME: Should we have other value for timeout?
-          @modifier.check(ant)
-        end
-      rescue => e
-        logger.error "There was an error processing setup and check: #{e}:\n #{e.backtrace}"
+      logger.debug "executing setup method with timeout #{timeout}" 
+      ok = timeout_execution(timeout, "setup #{ant.params.inspect}", false) do
+        @modifier.setup_ant(ant)
+      end
+      ok &&= timeout_execution( timeout , "check params is #{ant.params.inspect}", false ) do #FIXME: Should we have other value for timeout?
+        @modifier.check(ant)
       end
       ok
     end
