@@ -44,7 +44,7 @@ module AntHill
     def params_for_ant
       params.inject({}) do |hash,kv| 
         if !inherited_params || inherited_params.include?(kv[0])
-          hash[kv[0]]=hash[kv[1]]
+          hash[kv[0]]=kv[1]
         end
         hash
       end

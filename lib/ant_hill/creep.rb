@@ -109,7 +109,7 @@ module AntHill
         ok = setup(ant)
         if ok
           ant.params.each do |k,v|
-            if !@modifier.creep_params || @modifier.creep_params.include?(kv[0])
+            if !@modifier.creep_params || @modifier.creep_params.include?(k)
               self.current_params[k]=v
             end
           end
