@@ -103,7 +103,7 @@ module AntHill
 
     def method_missing(method, *args)
       meth = method.to_s.gsub(/^get_/, "")
-      if @configuration[meth]
+      if @configuration.has_key?(meth)
         @configuration[meth]
       else
         STDERR.puts "No key #{meth} defined in #{@config_file}"

@@ -33,6 +33,9 @@ module AntHill
       spawn_creeps(@config.creeps)
       spawn_drb_queen
       spawn_colonies_processor
+      at_exit do
+        save_queen(@config.queen_filename || "queen.yml")
+      end
       @threads.each{|t| t.join}
     rescue => e
       logger.error "There was an error in queen. Details: #{e}\n#{e.backtrace.join("\n")}"
