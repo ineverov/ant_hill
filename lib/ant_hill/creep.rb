@@ -220,6 +220,11 @@ module AntHill
       change_status(:disabled, &block)
     end
 
+    def enable!(&block)
+      @active = true
+      change_status(:wait, &block)
+    end
+
     def busy?
       !(@status == :wait || @status == :disabled || @status == :error)
     end

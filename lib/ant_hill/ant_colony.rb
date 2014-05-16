@@ -64,6 +64,11 @@ module AntHill
       @ants
     rescue => e
       logger.error "Error while processing search ants for colony\n#{e}\n#{e.backtrace}"
+      # Retry 3 times, esle return []
+      retries ||= 0
+      retries += 1
+      retry if retries < 3
+      []
     ensure
       # FIXME: Trigger colony finished if no ants were found
       colony_ant_finished
