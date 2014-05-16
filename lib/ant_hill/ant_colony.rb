@@ -41,6 +41,14 @@ module AntHill
       logger.error "Colony will die without creep modifier ;("
     end
 
+    def params_for_ant
+      params.inject({}) do |hash,kv| 
+        if !inherited_params || inherited_params.include?(kv[0])
+          hash[kv[0]]=kv[1]
+        end
+        hash
+      end
+    end
 
     def spoiled?
       !@creep_modifier
@@ -56,6 +64,11 @@ module AntHill
       @ants
     rescue => e
       logger.error "Error while processing search ants for colony\n#{e}\n#{e.backtrace}"
+      # Retry 3 times, esle return []
+      retries ||= 0
+      retries += 1
+      retry if retries < 3
+      []
     ensure
       # FIXME: Trigger colony finished if no ants were found
       colony_ant_finished
@@ -146,6 +159,12 @@ module AntHill
     end
     
     def after_search
+    end
+
+    def interested_params
+    end
+
+    def inherited_params
     end
   end
 end

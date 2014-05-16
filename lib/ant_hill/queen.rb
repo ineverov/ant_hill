@@ -33,6 +33,9 @@ module AntHill
       spawn_creeps(@config.creeps)
       spawn_drb_queen
       spawn_colonies_processor
+      at_exit do
+        save_queen(@config.queen_filename || "queen.yml")
+      end
       @threads.each{|t| t.join}
     rescue => e
       logger.error "There was an error in queen. Details: #{e}\n#{e.backtrace.join("\n")}"
@@ -98,11 +101,11 @@ module AntHill
         end
       }
     end
-
+ 
     def add_ants(ants)
       @ants += ants
     end
-
+    
     def find_ant(creep)
       return nil if @ants.empty?
       winner = nil
@@ -114,13 +117,24 @@ module AntHill
     end
 
     def max_priority_ant(creep)
-      @ants.max do |a,b|
-        creep.priority(a) <=> creep.priority(b)
+      max_ant = nil
+      max_priority =-Float::INFINITY
+      @ants.each do |a|
+        next if a.prior < max_priority
+        if (prior=a.priority_cache(creep)) > max_priority
+          max_priority = prior
+          max_ant = a
+        end
       end
+      max_ant
     rescue NoFreeConnectionError => e
       logger.error "Couldn't find any free connection for creep #{creep}. #{e}: #{e.backtrace.join("\n")}"
       creep.disable!
       nil
+    end
+
+    def reset_priority_for_creep(creep)
+      @ants.each{|a| a.delete_cache_for_creep(creep)}
     end
 
     def locked?

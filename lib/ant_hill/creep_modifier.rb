@@ -109,6 +109,8 @@ module AntHill
       0
     end
 
+    def creep_params
+    end
   end
 
 end

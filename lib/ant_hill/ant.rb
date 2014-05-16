@@ -3,17 +3,31 @@ module AntHill
     attr_reader :type, :colony, :status, :config, :params
     attr_accessor :execution_status, :runner, :prior, :output
     include DRbUndumped
+
     def initialize(params, colony, config = Configuration.config)
       @colony = colony
       @config = config
       @output = ''
-      @params = @colony.params.merge(params)
+      @params = @colony.params_for_ant.merge(params)
 
       @status = :not_started
       @execution_status = :queued
+      @cached_priorities = {}
       @type = colony.type
       @prior = config.init_time - Time.now
       @prior += colony.get_priority
+    end
+
+    def priority_cache(creep)
+      @cached_priorities[creep] ||= creep.priority(self)
+    end
+
+    def interested_params
+      @interested_params ||= (self.colony.interested_params || self.params.keys)
+    end
+
+    def delete_cache_for_creep(creep)
+      @cached_priorities.delete(creep) if interested_params.any?{ |p| creep.changed_params.include?(p) }
     end
 
     def to_s
