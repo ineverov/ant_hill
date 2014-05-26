@@ -105,10 +105,6 @@ module AntHill
       true
     end
 
-    def self.change_time_for_param(param)
-      0
-    end
-
     def creep_params
     end
   end

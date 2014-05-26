@@ -1,34 +1,13 @@
 module AntHill
   class Creep
     attr_reader :host, :user, :password, :status, :connection_pool, :logger, :processed, :passed, :start_time, :hill_cfg, :current_ant
-    attr_accessor :active, :custom_data
+    attr_accessor :active, :custom_data, :force_priority, :current_params
     include DRbUndumped
-    module Trackable
-      def self.extended(obj)
-        class << obj 
-          attr_reader :changed_params
-          alias :"old []=" :[]=  
-          def reset_changed
-            @changed_params = []
-          end
-
-          def []=(key, new_value)
-            old_value = self[key] if has_key?(key)
-            method(:"old []=").call(key,new_value)
-            if old_value != new_value
-              @changed_params ||= []
-              @changed_params << key unless @changed_params.index(key)
-            end
-          end
-        end
-      end
-    end
 
     def initialize(queen=Queen.queen, config=Configuration.config)
       @config = config
       @queen = queen
       @current_params = {}
-      @current_params.extend(Trackable)
       @custom_data = {}
       @status = :wait
       @current_ant = nil
@@ -36,29 +15,12 @@ module AntHill
       @passed = 0
       @active = true
       @start_time = Time.now
+      @force_priority = false
       @modifiers = {}
       @changed_params = []
     end
-    
-    def current_params
-      @current_params
-    end
 
-    def changed_params
-      current_params.changed_params
-    end
-
-    def current_params=(new_params)
-      new_params.each do |k,v|
-        @current_params[k]=v
-      end
-    end
-   
     def require_ant
-      while Queen.locked?
-        sleep rand
-      end
-
       time = Time.now
       ant = @queen.find_ant(self)
       logger.debug "Find min ant took #{Time.now - time}"
@@ -103,24 +65,30 @@ module AntHill
       @current_ant = ant
       @modifier = modifier(ant)
       ant.start
-      current_params.reset_changed
       safe do
         before_process(ant)
         ok = setup(ant)
         if ok
           ant.params.each do |k,v|
             if !@modifier.creep_params || @modifier.creep_params.include?(k)
-              self.current_params[k]=v
+              if current_params[k] != v
+                current_params[k]=v
+                self.force_priority = true
+              end
             end
           end
           run(ant)
         else
           setup_failed(ant)
+          self.force_priority = true
         end
       end
       ant.finish
       safe{ after_process(ant) }
-      Queen.queen.reset_priority_for_creep(self)
+      if self.force_priority
+        Queen.queen.reset_priority_for_creep(self)
+        self.force_priority = false
+      end
       @processed+=1
       @passed +=1 if @current_ant.execution_status.to_sym == :passed
       @current_ant = nil

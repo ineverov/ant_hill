@@ -9,7 +9,12 @@ module AntHill
       Queen.stub(:queen){ q }
       c = double("configuration")
       Configuration.stub(:config){ c }
+      c.stub(:get_connection_class){ con = double("connection"); con.stub(:new); con}
+      creep.configure({})
       creep.stub(:logger){ logger }
+      [:fatal, :error, :warn, :info, :debug].each do |m|
+        logger.stub(m)
+      end
     end
 
     context "#initialize" do
@@ -50,13 +55,21 @@ module AntHill
 
         cmc = double('creep_modifier_class')
         cmc.stub(:new){|creep| creep_modifier }
-
+        creep_modifier.stub(:before_process)
+        creep_modifier.stub(:before_setup)
+        creep_modifier.stub(:before_run)
+        creep_modifier.stub(:after_run)
+        creep_modifier.stub(:after_setup)
+        creep_modifier.stub(:after_process)
         ac = double("ant_colony")
         ac.stub(:creep_modifier_class) { cmc }
         ant.stub(:colony){ac}
         ant.stub(:ant_colony){ac}
         ant.stub(:params) { params }
         ant.stub(:execution_status){ 'passed' }
+        ant.stub(:type)
+        ant.stub(:start)
+        ant.stub(:finish)
         creep.stub(:setup){true}
         creep.stub(:run){true}
       end
@@ -87,6 +100,30 @@ module AntHill
         it "should change current_params to ant params " do
           creep.setup_and_process_ant(ant)
           creep.current_params.should eql(params)
+        end
+      end
+      context "priority" do
+        it "should reset priority if creep params changed" do
+          creep_modifier.stub(:creep_params){ [:aaa, :bbb]}
+          creep.stub(:current_params){ {:aaa => 2, :bbb => 2}}
+          Queen.queen.should_receive(:reset_priority_for_creep).with(creep)
+          creep.setup_and_process_ant(ant)
+          creep.force_priority.should be_false
+        end
+        it "should reset priority if it set manually" do
+          creep_modifier.stub(:creep_params){ [:aaa, :bbb]}
+          creep.stub(:current_params){ params }
+          creep.force_priority = true
+          Queen.queen.should_receive(:reset_priority_for_creep).with(creep)
+          creep.setup_and_process_ant(ant)
+          creep.force_priority.should be_false
+        end
+        it "should not reset priority if params are same and isn't set manually" do
+          creep_modifier.stub(:creep_params){ [:aaa, :bbb]}
+          creep.stub(:current_params){ params }
+          Queen.queen.should_not_receive(:reset_priority_for_creep)
+          creep.setup_and_process_ant(ant)
+          creep.force_priority.should be_false
         end
       end
       context "setup failed" do

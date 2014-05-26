@@ -161,9 +161,6 @@ module AntHill
     def after_search
     end
 
-    def interested_params
-    end
-
     def inherited_params
     end
   end
