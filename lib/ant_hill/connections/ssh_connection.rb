@@ -3,7 +3,14 @@ module AntHill
   class SSHConnection < ConnectionPool
     include DRbUndumped
     def closed?(connection)
-      connection.closed?
+      return true if connection.closed?
+      begin 
+        # Hack to check connection isn't dead
+        connection.exec!('true') unless connection.busy?
+      rescue Net::SSH::Exception, SystemCallError => e
+        return true
+      end
+      return false
     end
 
     def busy?(connection)
