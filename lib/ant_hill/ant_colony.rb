@@ -1,7 +1,7 @@
 module AntHill
   class AntColony
-    attr_accessor :params
-    attr_reader :logger, :ants
+    attr_accessor :params, :ants
+    attr_reader :logger
     include DRbUndumped
     def initialize(params={}, config = Configuration.config )
       @params = params
