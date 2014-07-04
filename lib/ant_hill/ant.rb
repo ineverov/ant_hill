@@ -22,12 +22,12 @@ module AntHill
       @cached_priorities[creep] ||= creep.priority(self)
     end
 
-    def interested_params
-      @interested_params ||= (self.colony.interested_params || self.params.keys)
+    def delete_cache_for_creep(creep)
+      @cached_priorities.delete(creep)
     end
 
-    def delete_cache_for_creep(creep)
-      @cached_priorities.delete(creep) if interested_params.any?{ |p| creep.changed_params.include?(p) }
+    def delete_cache
+      @cached_priorities = {}
     end
 
     def to_s
