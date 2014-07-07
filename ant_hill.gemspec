@@ -9,7 +9,11 @@ Gem::Specification.new do |s|
   s.email       = ["ineverov@sphereconsultinginc.com"]
   s.homepage    = ""
   s.summary     = %q{Run tests in grid}
-  s.description = %q{Run tests in grid}
+  s.description = %q{Application for running stuff with same purpose on several nodes
+It find "best matching job" (based on setup time) for particular node and setup node
+Then it run job on this node
+
+Originally it was desined for CI.}
 
   s.rubyforge_project = "ant_hill"
 

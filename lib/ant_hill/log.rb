@@ -1,8 +1,11 @@
 module AntHill
+  # Log class
   class Log
     include DRbUndumped
+    # Singleton class
     class << self
       @@loggers = {}
+      # Return logger for specified name
       def logger_for(name, config = Configuration.config)
         return @@loggers[name] if @@loggers[name]
         verbose = config.log_level
@@ -14,6 +17,8 @@ module AntHill
         @@loggers[name] = logger 
       end
       private
+      # Convert symbol log level to Logger log level
+      #
       def level(level)
         case level
         when :fatal then Logger::FATAL

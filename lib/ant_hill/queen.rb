@@ -1,12 +1,20 @@
 module AntHill
+  # Main class that rule all the kingdom
   class Queen
+    # +creeps+:: list of creeps
+    # +ants+:: list of ants
+    # +colonies+:: list of colonies
     attr_reader :creeps, :ants, :colonies
 
+    # Default host for DRb
     DRB_HOST = '127.0.0.1'
+    # Default port for DRb
     DRB_PORT = 6666
     
     include DRbUndumped
 
+    # Initialize
+    # +config+:: Configuration object
     def initialize(config = Configuration.config)
       @config = config
       @ants = []
@@ -24,10 +32,12 @@ module AntHill
       @loaded_params = {}
     end
 
+    # Return ants size
     def size
       @ants.size
     end
 
+    # Service method
     def service
       @threads = []
       spawn_creeps(@config.creeps)
@@ -41,6 +51,9 @@ module AntHill
       logger.error "There was an error in queen. Details: #{e}\n#{e.backtrace.join("\n")}"
     end
 
+    # Create colony
+    # +params+:: params for colony
+    # +loaded_params+:: loaded params for respawning queen
     def create_colony(params={}, loaded_params = nil)
       type = params['type']
       type = loaded_params[:params]['type'] if loaded_params
@@ -56,6 +69,7 @@ module AntHill
       colony
     end
 
+    # Initialize and start threads for each creep
     def spawn_creeps(creeps)
       @creeps = []
       loaded_params = @loaded_params[:creeps]
@@ -72,6 +86,7 @@ module AntHill
       end
     end
 
+    # Create drb interface for queen
     def spawn_drb_queen
       @threads << Thread.new{
         begin 
@@ -84,6 +99,7 @@ module AntHill
       }
     end
 
+    # Create thread for processing new colonies
     def spawn_colonies_processor
       @threads << Thread.new{
         Thread.current["name"]="colony queue processor"
@@ -102,10 +118,13 @@ module AntHill
       }
     end
  
+    # Add new ants to queue
     def add_ants(ants)
       @ants += ants
     end
     
+    # Find ant for creep
+    # +creep+:: creep to find ant
     def find_ant(creep)
       return nil if @ants.empty?
       winner = nil
@@ -116,6 +135,8 @@ module AntHill
       winner
     end
 
+    # Return ant with max priority for creep
+    # +creep+:: creep object
     def max_priority_ant(creep)
       max_ant = nil
       max_priority =-Float::INFINITY
@@ -133,18 +154,17 @@ module AntHill
       nil
     end
 
+    # Reset priority for specified creep for all ants
     def reset_priority_for_creep(creep)
       @ants.each{|a| a.delete_cache_for_creep(creep)}
     end
 
-    def locked?
-      @lock
-    end
-
+    # Return logger for queen
     def logger
       Log.logger_for(:queen)
     end
 
+    # Suspend all processing and wait while it's done 
     def suspend
       @active = false
       while creeps.any?{|creep| creep.busy? }
@@ -155,16 +175,21 @@ module AntHill
       end
     end
 
+    # Release all processing
     def release
       @active = true
     end
 
+    # Find colonies for params
+    # +params+:: hash of params to match colony
     def find_colonies(params)
       @colonies.select do |colony| 
         colony.is_it_me?(params)
       end
     end
 
+    # Kill colonies matching params
+    # +params+:: hash of params
     def kill_colony(params)
       if params.is_a?(AntColony)
         to_kill = [ params ]
@@ -182,17 +207,23 @@ module AntHill
       }
     end
 
+    # Save queen to file
+    # +filename+:: filename to store queen data
     def save_queen(filename)
       queen_hash = to_hash
       File.open(filename, "w+") { |f| f.puts queen_hash.to_yaml}
     end
 
+    # Restore queen from file
+    # +filename+:: filenme with queen data
     def restore_queen(filename)
       hash = YAML::load_file(filename)
       @loaded_params = hash
       from_hash(hash)
     end
 
+    # Initialize queen from loaded hash
+    # +hash+:: queen hash
     def from_hash(hash)
       colonies = hash[:colonies]
       tmp = {}
@@ -205,6 +236,8 @@ module AntHill
       @colony_queue = hash[:colony_queue].collect{|cq| tmp[cq]}
     end
 
+    # Convert queen to hash
+    # +include_finished+:: should finished colonies and ants be includes to hash?
     def to_hash(include_finished = false)
       {
         :colonies => @colonies.collect{|ac| ac.to_hash(include_finished) },
@@ -214,17 +247,23 @@ module AntHill
       }
     end
 
+    # Check if queen is active
     def active?; @active; end
 
+    # Singleton object
     class << self
+      # Check if mutex is locked
       def locked?
         @@mutex.locked?
       end
 
+      # Return or create current queen
       def queen
         @@queen ||= self.new
       end
 
+      # Connect to DRb interface of queen
+      # +host+:: host where DRb is started
       def drb_queen(host = 'localhost')
         DRb.start_service
         queen = DRbObject.new_with_uri "druby://#{host}:6666"
@@ -232,19 +271,29 @@ module AntHill
         puts e
       end
 
+      # Creates colony for arguments
+      # +args+:: command line arguments
+      # +host+:: DRb queen host
       def create_colony(args, host = 'localhost')
         drb_queen(host).create_colony parse_args(args)
       end
 
+      # Return list of creeps
+      # +host+:: DRb queen host
       def creeps(host = 'localhost')
         drb_queen(host).creeps
       end
 
+      # Kill colony(colonies) matching arguments
+      # +args+:: command line arguments
+      # +host+:: DRb queen host
       def kill_colony(args, host = 'localhost')
         drb_queen(host).kill_colony parse_args(args)
       end
 
       private
+      # Convert command line arguments to hash
+      # +args+:: command line arguments
       def parse_args(args)
         result = {}
         args.each do |arg|

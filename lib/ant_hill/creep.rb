@@ -1,9 +1,27 @@
 module AntHill
+  # Node object
   class Creep
-    attr_reader :host, :user, :password, :status, :connection_pool, :logger, :processed, :passed, :start_time, :hill_cfg, :current_ant
+
+    # +host+:: hostname of creep
+    # +user+:: username to connect
+    # +password+:: password to connect
+    # +status+:: status of creep
+    # +processed+:: number of ants processed
+    # +passed+:: number of successfully processed ants
+    # +start_time+:: status time
+    # +hill_cfg+:: creep configuration
+    # +current_ant+:: currently processing ant
+    attr_reader :host, :user, :password, :status, :processed, :passed, :start_time, :hill_cfg, :current_ant
+    # +active+:: node activness
+    # +custom_data+:: custom data hash
+    # +force_priority+:: If true recalculate priority for this creep instaed of taking cahced values
+    # +current_params+:: current creep configuration
     attr_accessor :active, :custom_data, :force_priority, :current_params
     include DRbUndumped
 
+    #Initialize method
+    #[+queen+]:: queen obeject
+    #[+config+]:: configuration
     def initialize(queen=Queen.queen, config=Configuration.config)
       @config = config
       @queen = queen
@@ -20,6 +38,7 @@ module AntHill
       @changed_params = []
     end
 
+    #Find ant best matching current configuration based on priority
     def require_ant
       time = Time.now
       ant = @queen.find_ant(self)
@@ -27,11 +46,15 @@ module AntHill
       ant
     end
 
+    # Return priority of ant for this creep
+    # +ant+:: ant to calculate priority
     def priority(ant)
       mod = modifier(ant)
       ant.prior - mod.get_setup_time(ant)
     end
 
+    # Initialize instance variables from hash
+    # +hash+:: creep hash
     def from_hash(hash)
       @current_params = (hash[:current_parmas] || {}).tap{|cp| cp.extend(Trackable)}
       @custom_data = hash[:custom_data] || {}
@@ -43,10 +66,7 @@ module AntHill
       @hill_cfg.merge!(hash[:hill_cfg] || {})
     end
 
-    def modifier(ant)
-      @modifiers[ant.type] ||= ant.colony.creep_modifier_class.new(self)
-    end
-
+    # Convert current creep to hash
     def to_hash
       {
         :id => object_id,
@@ -61,6 +81,14 @@ module AntHill
       }
     end
 
+    # Return modifier object for ant
+    # +ant+:: ant for which we need modifier
+    def modifier(ant)
+      @modifiers[ant.type] ||= ant.colony.creep_modifier_class.new(self)
+    end
+
+    # Do setup and run ant
+    # +ant+:: ant to setup and run
     def setup_and_process_ant(ant)
       @current_ant = ant
       @modifier = modifier(ant)
@@ -94,18 +122,26 @@ module AntHill
       @current_ant = nil
     end
 
+    # Before process hook
+    # +ant+:: Ant object
     def before_process(ant)
       @modifier.before_process(ant)
     end
 
+    # After process hook
+    # +ant+:: Ant object
     def after_process(ant)
       @modifier.after_process(ant)
     end
 
+    # Setup failed hook
+    # +ant+:: Ant object
     def setup_failed(ant)
       @modifier.setup_failed(ant)
     end
 
+    # Setup method
+    # +ant+:: Ant object
     def setup(ant)
       timeout = 0
       timeout = @modifier.get_setup_time(ant)
@@ -121,6 +157,8 @@ module AntHill
       ok
     end
 
+    # Run method
+    # +ant+:: Ant object
     def run(ant)
       timeout = @modifier.get_run_time(ant)
       change_status(:run)
@@ -129,23 +167,29 @@ module AntHill
       end
     end
 
+    # Return logger object 
     def logger
       Log.logger_for host
     end
 
-    def configure(hill_configuration)
-      @hill_cfg = hill_configuration
+    # Setup creep configuration
+    # +creep_configuration+:: Ant object
+    def configure(creep_configuration)
+      @hill_cfg = creep_configuration
       @host = @hill_cfg['host']
       @user = @hill_cfg['user']
       @password = @hill_cfg['password']
       @connection_pool = @config.get_connection_class.new(self)
     end
-  
+ 
+    # Execute command on creep
+    # +command+:: Command to run
+    # +timeout+:: Timeout for command. If nil - no timeout
     def exec!(command, timeout=nil)
       logger.info("Executing: #{command}")
       stderr,stdout = '', ''
       stdout, stderr = timeout_execution(timeout, "exec!(#{command})") do
-        connection_pool.exec(command)
+        @connection_pool.exec(command)
       end
       logger.info("STDERR: #{stderr}") unless stderr.empty?
       logger.info("STDOUT: #{stdout}") unless stdout.empty?
@@ -153,20 +197,21 @@ module AntHill
       stdout
     end
 
+    # Silent version of exec!. Return NoFreeConnection error instance if failed to execute
     def run_once(command, timeout = nil)
       exec!(command,timeout)    
     rescue NoFreeConnectionError => ex
       ex
     end
 
+    # Execute block with timeout
+    # +timeout+:: Timeout in seconds or nil if no timeout
+    # +process+:: description string, describing process where timeout happened
+    # +default_responce+:: default responce if timeout was raised
     def timeout_execution(timeout=nil, process = nil, default_response = ['', ''])
       result = default_response
       begin
-        if timeout
-          Timeout::timeout( timeout ) do
-            result = yield 
-          end
-        else
+        Timeout::timeout( timeout ) do
           result = yield 
         end
       rescue Timeout::Error => e
@@ -176,27 +221,34 @@ module AntHill
       result
     end
 
+    # Create string representation of Creep
     def to_s
       took_time = Time.at(Time.now - @start_time).gmtime.strftime('%R:%S')
       "%s (%i): %s (%s): %s " % [@hill_cfg['host'], @processed, status, took_time,  @current_ant]
     end
 
+    # Retunr if creep is active
     def active?; @active; end
 
-    def disable!(&block)
+    # Deactivate creep and set status to +:disabled+
+    def disable!
       @active = false
-      change_status(:disabled, &block)
+      change_status(:disabled)
     end
 
-    def enable!(&block)
+    # Activate creep and set status to +:wait+
+    def enable!
       @active = true
-      change_status(:wait, &block)
+      change_status(:wait)
     end
 
+    # Check if creep is busy
+    # "Free" statuses are +:wait+, +:disabled+, +:error+
     def busy?
       !(@status == :wait || @status == :disabled || @status == :error)
     end
 
+    # Start service
     def service
       loop do
         if !active? 
@@ -208,23 +260,27 @@ module AntHill
           setup_and_process_ant(ant)
         else
           logger.debug("Waiting for more ants or release")
-          change_status(:wait) 
+          change_status(:wait)
           sleep @config.sleep_interval
         end
       end
-      connection_pool.destroy
+      @connection_pool.destroy
     end
 
+    # Kill all connections
     def kill_connections
-      connection_pool.destroy
+      @connection_pool.destroy
     end
 
+    # Change status and timer for this status of creep
     def change_status(status)
-      @status = status
-      @start_time = Time.now
-      yield(self) if block_given?
+      unless @status == status
+        @status = status
+        @start_time = Time.now
+      end
     end
 
+    # Execute block without raising errors
     def safe
       begin
         yield

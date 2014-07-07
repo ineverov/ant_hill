@@ -1,7 +1,11 @@
 require 'net/ssh'
 module AntHill
+  # Child of ConnectionPool
   class SSHConnection < ConnectionPool
     include DRbUndumped
+
+    # Check if SSH connection is closed
+    # +connection+:: SSH connection to check
     def closed?(connection)
       return true if connection.closed?
       begin 
@@ -13,10 +17,13 @@ module AntHill
       return false
     end
 
+    # Check if SSH connection is busy
+    # +connection+:: SSH connection to check
     def busy?(connection)
       connection.busy?
     end
 
+    # Get new SSH connection 
     def get_new
       logger.debug "Establishing connection for #{creep.user}@#{creep.host} passwd:#{creep.password}"
       ssh =  Net::SSH.start(creep.host, creep.user, {:password => creep.password, :verbose => (ENV['SSH_DEBUG'] && ENV['SSH_DEBUG'].to_sym) || :fatal })
@@ -30,6 +37,9 @@ module AntHill
       return nil
     end
     
+    # Execute command on SSH connection
+    # +connection+:: SSH connection
+    # +command+:: command to execute
     def execute(connection, command)
       stdout = ""
       stderr = ""
@@ -48,6 +58,8 @@ module AntHill
       ["", ""]
     end
 
+    # Kill SSH connection
+    # +connection+:: SSH connection
     def kill_connection(connection)
       connection.shutdown!
     end
