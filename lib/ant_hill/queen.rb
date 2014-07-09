@@ -70,20 +70,46 @@ module AntHill
     end
 
     # Initialize and start threads for each creep
+    # +creeps+: array of hashes with creep params
+    #   Example: [{'name' => 'creep1', 'host'=> 'hostname', 'user' => 'login_user', 'password' => 'user_password'}]
     def spawn_creeps(creeps)
       @creeps = []
       loaded_params = @loaded_params[:creeps]
       creeps.each do |creep_config|
         creep_loaded = loaded_params && loaded_params.find{|cr| cr[:hill_cfg]['name'] == creep_config['name'] } || {}
-        @threads << Thread.new{
-          c = Creep.new
-          @creeps << c
-          c.configure(creep_config)
-          c.from_hash(creep_loaded)
-          Thread.current["name"]=c.to_s
-          c.service
-        }
+        add_creep(creep_config, creep_loaded)
       end
+    end
+
+    # Adding new creep and creatinf thread for it
+    # +creep_config+:: hash of params for creep
+    #   Example: {'name' => 'creep1', 'host'=> 'hostname', 'user' => 'login_user', 'password' => 'user_password'}
+    # +creep_loaded+:: creep loaded from saved file 
+    def add_creep(creep_config, creep_loaded=nil)
+      @threads << Thread.new{
+        c = Creep.new
+        @creeps << c
+        c.configure(creep_config)
+        c.from_hash(creep_loaded)
+        Thread.current["name"]=c.to_s
+        c.service
+      }
+    end
+
+    # Delete creep
+    # +creep_name+:: creep name to delete
+    # +graceful+:: default true, if true finish processing before delete
+    def delete_creep(creep_name, graceful=true)
+      creep = @creeps.find{|c| c.name =~ /#{creep_name}/}
+      thread = @threads.find{|t| t['name'] == creep.to_s} if creep
+      if graceful
+        creep.disable!
+        while creep.busy? do
+          sleep 1
+        end
+      end
+      thread.terminate if thread
+      @creep.delete(creep) if creep
     end
 
     # Create drb interface for queen
