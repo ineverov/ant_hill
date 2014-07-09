@@ -56,7 +56,7 @@ module AntHill
     # Initialize instance variables from hash
     # +hash+:: creep hash
     def from_hash(hash)
-      @current_params = (hash[:current_parmas] || {}).tap{|cp| cp.extend(Trackable)}
+      @current_params = (hash[:current_parmas] || {})
       @custom_data = hash[:custom_data] || {}
       @status = hash[:status] || :wait
       @processed = hash[:processed] || 0
