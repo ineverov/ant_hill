@@ -85,12 +85,12 @@ module AntHill
     # +creep_config+:: hash of params for creep
     #   Example: {'name' => 'creep1', 'host'=> 'hostname', 'user' => 'login_user', 'password' => 'user_password'}
     # +creep_loaded+:: creep loaded from saved file 
-    def add_creep(creep_config, creep_loaded=nil)
+    def add_creep(creep_config, creep_loaded={})
       @threads << Thread.new{
         c = Creep.new
-        @creeps << c
         c.configure(creep_config)
         c.from_hash(creep_loaded)
+        @creeps << c
         Thread.current["name"]=c.to_s
         c.service
       }
@@ -100,7 +100,7 @@ module AntHill
     # +creep_name+:: creep name to delete
     # +graceful+:: default true, if true finish processing before delete
     def delete_creep(creep_name, graceful=true)
-      creep = @creeps.find{|c| c.name =~ /#{creep_name}/}
+      creep = @creeps.find{|c| c.name.to_s =~ /#{creep_name}/}
       thread = @threads.find{|t| t['name'] == creep.to_s} if creep
       if graceful
         creep.disable!
@@ -109,7 +109,8 @@ module AntHill
         end
       end
       thread.terminate if thread
-      @creep.delete(creep) if creep
+      @threads.delete(thread) if thread
+      @creeps.delete(creep) if creep
     end
 
     # Create drb interface for queen

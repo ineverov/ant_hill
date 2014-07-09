@@ -16,7 +16,8 @@ module AntHill
     # +custom_data+:: custom data hash
     # +force_priority+:: If true recalculate priority for this creep instaed of taking cahced values
     # +current_params+:: current creep configuration
-    attr_accessor :active, :custom_data, :force_priority, :current_params
+    # +name+:: creep name
+    attr_accessor :active, :custom_data, :force_priority, :current_params, :name
     include DRbUndumped
 
     #Initialize method
@@ -179,6 +180,7 @@ module AntHill
       @host = @hill_cfg['host']
       @user = @hill_cfg['user']
       @password = @hill_cfg['password']
+      @name = @hill_cfg['name']
       @connection_pool = @config.get_connection_class.new(self)
     end
  
