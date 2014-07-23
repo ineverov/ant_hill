@@ -1,0 +1,39 @@
+-------------------------------------------
+SCOPE
+-------------------------------------------
+Project is for running multiple tasks grouped in jobs
+
+General workflow is:
+User create job
+For this job system find tasks, using AntColony and place them to general queue
+Creeps (node processes) request new task
+Queen (main class) find best matching task for creep using priority method as metric
+Creep starting to process this task
+Setup env specific for task, then check env is correct
+Then it run task
+Then task is completed it request new task, if queue is empty it just waiting
+
+=============Example=======================
+You need to run tests. Whole test run take,
+lets say, 10 hours, but you have several boxes to run tests
+Lets say you have 5 boxes and 1000 tests
+You don't know (or this number is estimated) how much time
+takes each test.
+Before running tests you need do some setup(change branch, apply DB patches, etc)
+You can split test on batches to run 200 tests in each box,
+but each batch has different runtime so instead of 2 hours (10 hours / 5 nodes)
+you'll get 2h 30 m (max of each batches, depending of diff between runtimes)
+You can run tests one by one: each box request test to run and then it's finished
+require new test. This way you can reach ~2h runtime. Lets call 
+this processes - Creeps. 
+For running tests one by one we need some logic to return list of tests to run
+Lets call this AntColony
+
+Now next problem. Use 5 boxes per user is very expensive. Lets share this boxes 
+between all users. Different users can run different branches on same nodes.
+We need to run tests as fast as possible, so changing environment (branch,db)
+is expensive, and we need some logic to find "best matching test" for box
+Let's call this "priority"
+Also we need to keep env setup and test running logic somewhere
+Lets call this 2 things CreepModifier
+===========================================
