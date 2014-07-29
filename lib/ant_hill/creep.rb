@@ -112,8 +112,8 @@ module AntHill
           self.force_priority = true
         end
       end
-      ant.finish
       safe{ after_process(ant) }
+      ant.finish
       if self.force_priority
         Queen.queen.reset_priority_for_creep(self)
         self.force_priority = false
