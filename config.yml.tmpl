@@ -1,0 +1,49 @@
+#Base dir of project
+
+basedir: path_to_dir_with_extension
+lib_path: extension_require_file
+
+log_dir: log_directory
+log_level: :warn
+log_num_old_files: 2
+log_size: 26214400
+
+drb_host: host_to_listen_to
+drb_port: 6666
+
+connection_class: AntHill::SSHConnection 
+
+# Time to sleep before next request of ant
+sleep_interval: 1
+
+types:
+  type1:
+    ant_colony_class: AntHill::Type1Colony
+    creep_modifier_class: AntHill::Type1Modifier
+
+  type1:
+    ant_colony_class: AntHill::Type1Colony
+    creep_modifier_class: AntHill::Type1Modifier
+
+default_type: type1
+
+monitor:
+  hostname_length: 15
+  processed_length: 7
+
+#You can add custom configuration here
+custom_key:
+  some_var: 1
+
+#Test nodes
+creeps:
+  -
+    name: 1
+    host: node1.somewhere.com
+    user: username
+    password: password
+  -
+    name: 1
+    host: node1.somewhere.com
+    user: username
+    password: password
