@@ -252,18 +252,30 @@ module AntHill
 
     # Start service
     def service
-      loop do
-        if !active? 
-          logger.debug("Node was disabled")
-          change_status(:disabled) 
-          sleep @config.sleep_interval
-        elsif @queen.active? && ant = self.require_ant 
-          logger.debug("Setupping and processing ant")
-          setup_and_process_ant(ant)
+      begin 
+        loop do
+          if !active? 
+            logger.debug("Node was disabled")
+            change_status(:disabled) 
+            sleep @config.sleep_interval
+          elsif @queen.active? && ant = self.require_ant 
+            logger.debug("Setupping and processing ant")
+            setup_and_process_ant(ant)
+          else
+            logger.debug("Waiting for more ants or release")
+            change_status(:wait)
+            sleep @config.sleep_interval
+          end
+        end
+      rescue => e
+        logger.error "Service method finished with exception #{e}:\n#{e.backtrace.join("\n")}"
+        @retries ||=0
+        if @retries < (@config.creep_error_retries || 3)
+          logger.error "Trying to run service method again"
+          @retries += 1
+          retry
         else
-          logger.debug("Waiting for more ants or release")
-          change_status(:wait)
-          sleep @config.sleep_interval
+          logger.error "Abborting... Retries count was #{@retries}/#{@config.creep_error_retries}"
         end
       end
       @connection_pool.destroy
