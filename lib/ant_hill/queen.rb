@@ -134,9 +134,9 @@ module AntHill
           if @active
             @colony_processor_busy = true
             colony = @colony_queue.shift
-            if colony
+            if colony && !colony.killed?
               new_ants = colony.get_ants
-              add_ants(new_ants)
+              add_ants(new_ants) unless colony.killed?
             end
             @colony_processor_busy = false
           end
