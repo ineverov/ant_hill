@@ -5,7 +5,8 @@ module AntHill
     # Attribute accessors
     # +params+:: +AntColony+ params
     # +ants+:: array of +Ant+'s for this colony
-    attr_accessor :params, :ants
+    # +status+:: colony status
+    attr_accessor :params, :ants, :status
     
     # Attribute reader
     # +logger+:: logger for AntColony
@@ -112,6 +113,11 @@ module AntHill
       ants.all?{ |a| a.finished? } || ants.empty?
     end
 
+    # retunr true if colony was killed
+    def killed?
+      @status == :killed
+    end
+
     # Return logger
     def logger
       Log.logger_for :ant_colony
@@ -164,6 +170,7 @@ module AntHill
 
     # Mark all unprocessed ants as finished
     def kill
+      @status = :killed
       ants.each do |ant|
         ant.change_status(:finished) if ant.status == :not_started
       end
