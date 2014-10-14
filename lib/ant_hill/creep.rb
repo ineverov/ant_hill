@@ -267,7 +267,7 @@ module AntHill
             sleep @config.sleep_interval
           end
         end
-      rescue => e
+      rescue Exception => e
         logger.error "Service method finished with exception #{e}:\n#{e.backtrace.join("\n")}"
         @retries ||=0
         if @retries < (@config.creep_error_retries || 3)
@@ -277,8 +277,9 @@ module AntHill
         else
           logger.error "Abborting... Retries count was #{@retries}/#{@config.creep_error_retries}"
         end
+      ensure 
+        safe(:quiet){ @connection_pool.destroy }
       end
-      @connection_pool.destroy
     end
 
     # Kill all connections
@@ -295,7 +296,7 @@ module AntHill
     end
 
     # Execute block without raising errors
-    def safe
+    def safe(quiet = false)
       begin
         yield
       rescue NoFreeConnectionError => e
@@ -304,8 +305,12 @@ module AntHill
         custom_data['disabled_description'] = 'Cannot find free connection or create new one'
         logger.error "#{e}\n#{e.backtrace}" 
       rescue => e
-        change_status(:error)
-        logger.error "#{e}\n#{e.backtrace}" 
+        unless quiet
+          disable!
+          custom_data['disabled_reason'] = :uncaught_error
+          custom_data['disabled_description'] = "Uncaught error #{e}. See logs for details"
+        end
+        logger.error "Unspecified error #{e}\n#{e.backtrace}" 
       end
     end
   end
