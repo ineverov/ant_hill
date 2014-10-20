@@ -34,7 +34,7 @@ module AntHill
       # Ant type is colony type
       @type = colony.type
       # Set initial priority to queen start time - Time.now so ants created later will have lower priority
-      @prior = config.init_time - Time.now
+      @prior = (config.init_time - Time.now).to_i
       # Add colony priority
       @prior += colony.get_priority
     end
