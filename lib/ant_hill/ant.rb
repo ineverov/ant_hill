@@ -39,6 +39,18 @@ module AntHill
       @prior += colony.get_priority
     end
 
+    def marked?
+      @marked
+    end
+
+    def mark
+      @marked = true
+    end
+
+    def unmark
+      @marked = false
+    end
+
     # Cache of creeps priorities
     def priority_cache(creep)
       @cached_priorities[creep] ||= creep.priority(self)
@@ -91,8 +103,8 @@ module AntHill
     end
 
     # Re-process current ant
-    def return_to_queue(queen = Queen.queen)
-      queen.add_ants([self])
+    def return_to_queue
+      unmark
     end
 
     # Update status for ant

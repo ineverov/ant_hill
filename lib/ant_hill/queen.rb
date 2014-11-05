@@ -17,18 +17,17 @@ module AntHill
     # +config+:: Configuration object
     def initialize(config = Configuration.config)
       @config = config
-      @ants = []
-      @colony_queue = []
       @colonies = []
       @drb_host = config.drb_host
       @drb_port = config.drb_port
-      @@mutex = Mutex.new
       trap("INT") do
         puts "Terminating... Pls wait"
         @creeps.each{|c|  c.kill_connections  }
         @threads.each{|th| th.exit  }
       end
       @active = true
+      @colony_queue = AntColonyQueue.new
+      @process_colony_queue = SynchronizedObject.new([], [:<<, :select, :shift])
       @loaded_params = {}
     end
 
@@ -61,8 +60,7 @@ module AntHill
       if colony_class
         colony = colony_class.new(params)
         colony.from_hash(loaded_params) if loaded_params
-        @colony_queue << colony unless loaded_params
-        @colonies << colony
+        @process_colony_queue << colony
       else
         logger.error "Couldn't process request #{params} because of previous errors"
       end
@@ -133,10 +131,10 @@ module AntHill
         while true do
           if @active
             @colony_processor_busy = true
-            colony = @colony_queue.shift
+            colony = @process_colony_queue.shift
             if colony && !colony.killed?
-              new_ants = colony.get_ants
-              add_ants(new_ants) unless colony.killed?
+              colony.get_ants
+              colony_queue.add_colony(colony) unless colony.killed?
             end
             @colony_processor_busy = false
           end
@@ -145,47 +143,6 @@ module AntHill
       }
     end
  
-    # Add new ants to queue
-    def add_ants(ants)
-      @ants += ants
-    end
-    
-    # Find ant for creep
-    # +creep+:: creep to find ant
-    def find_ant(creep)
-      return nil if @ants.empty?
-      winner = nil
-      @@mutex.synchronize{
-        winner = max_priority_ant(creep)
-        @ants.delete(winner) if winner
-      }
-      winner
-    end
-
-    # Return ant with max priority for creep
-    # +creep+:: creep object
-    def max_priority_ant(creep)
-      max_ant = nil
-      max_priority =-Float::INFINITY
-      @ants.each do |a|
-        next if a.prior < max_priority
-        if (prior=a.priority_cache(creep)) > max_priority
-          max_priority = prior
-          max_ant = a
-        end
-      end
-      max_ant
-    rescue NoFreeConnectionError => e
-      logger.error "Couldn't find any free connection for creep #{creep}. #{e}: #{e.backtrace.join("\n")}"
-      creep.disable!
-      nil
-    end
-
-    # Reset priority for specified creep for all ants
-    def reset_priority_for_creep(creep)
-      @ants.each{|a| a.delete_cache_for_creep(creep)}
-    end
-
     # Return logger for queen
     def logger
       Log.logger_for(:queen)
@@ -210,28 +167,26 @@ module AntHill
     # Find colonies for params
     # +params+:: hash of params to match colony
     def find_colonies(params)
-      @colonies.select do |colony| 
+      @process_colony_queue.select do |colony| 
         colony.is_it_me?(params)
       end
     end
+    private :find_colonies
 
-    # Kill colonies matching params
-    # +params+:: hash of params
+    def find_ant(creep)
+      colony_queue.find_ant(creep)
+    end
+
     def kill_colony(params)
       if params.is_a?(AntColony)
         to_kill = [ params ]
       else
         to_kill = find_colonies(params)
       end
-      @@mutex.synchronize{
-        to_kill.each do |colony|
-          colony.kill
-          @ants.reject!{|ant|
-            ant.colony == colony
-          }
-          @colonies.delete(colony)
-        end
-      }
+      to_kill.each do |colony|
+        colony.kill
+        colony_queue.delete_colony(colony)
+      end
     end
 
     # Save queen to file

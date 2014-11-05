@@ -13,6 +13,10 @@ private :require_ant_hill
 module AntHill
 end
 
+# Synchronized object
+require_ant_hill 'synchronized_objecti'
+# Ant colony queue
+require_ant_hill 'ant_colony_queue'
 # Instance of job
 require_ant_hill 'ant'
 # Configuration
