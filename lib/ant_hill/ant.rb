@@ -37,6 +37,7 @@ module AntHill
       @prior = (config.init_time - Time.now).to_i
       # Add colony priority
       @prior += colony.get_priority
+      @priority_cache_mutex = Mutex.new
     end
 
     def marked?
@@ -53,18 +54,25 @@ module AntHill
 
     # Cache of creeps priorities
     def priority_cache(creep)
-      @cached_priorities[creep] ||= creep.priority(self)
+      @priority_cache_mutex.synchronize do 
+        id = creep.object_id
+        @cached_priorities[id] ||= creep.priority(self)
+      end
     end
 
     # Delete priority cache for specified creep
     # +creep+:: +Creep+ for which delete cache
     def delete_cache_for_creep(creep)
-      @cached_priorities.delete(creep)
+      @priority_cache_mutex.synchronize do
+        @cached_priorities.delete(creep.object_id)
+      end
     end
 
     # Deelte all priprities cahce
     def delete_cache
-      @cached_priorities = {}
+      @priority_cache_mutex.synchronize do
+        @cached_priorities = {}
+      end
     end
 
     # Create string representation of Ant
