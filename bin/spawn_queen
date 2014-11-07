@@ -14,7 +14,9 @@ else
     filename = ARGV[1]
     queen.restore_queen(filename)
   end
-  Process.daemon
+  $stdout.reopen(File.new('spawn_queen.log', "w+"))
+  $stderr.reopen(File.new('spawn_queen.log', 'a+'))
+  Process.daemon true, true
   File.open(pid_file,'w+'){ |f| f.print Process.pid}
   queen.service
 end
