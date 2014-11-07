@@ -140,7 +140,7 @@ module AntHill
 
     # Check if ant had been finished
     def finished?
-      status == :finished
+      marked? && (status == :finished)
     end
   end
 end

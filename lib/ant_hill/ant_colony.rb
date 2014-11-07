@@ -38,6 +38,35 @@ module AntHill
         }
       end
     end
+    
+    # Return ant with max priority for creep
+    # +creep+:: creep object
+    def max_priority_ant(colony,creep)
+      max_ant = nil
+      max_priority =-Float::INFINITY
+      colony.ants.select{|a| !a.marked? }.each do |a|
+        next if a.prior < max_priority
+        if (prior=a.priority_cache(creep)) > max_priority
+          max_priority = prior
+          max_ant = a
+        end
+      end
+      max_ant.mark if max_ant
+      max_ant
+    rescue NoFreeConnectionError => e
+      logger.error "Couldn't find any free connection for creep #{creep}. #{e}: #{e.backtrace.join("\n")}"
+      creep.disable!
+      nil
+    end
+
+    def not_processed_size
+      @ants.count{|a| !a.marked? }
+    end
+    
+    # Reset priority for specified creep for all ants
+    def reset_priority_for_creep(creep)
+      @ants.each{|a| a.delete_cache_for_creep(creep)}
+    end
 
     # Convert +AntColony+ into hash
     # +include_finished+:: include in hash finished +Ant+'s (default: false)
@@ -45,7 +74,6 @@ module AntHill
       _ants = @ants
       _ants = @ants.select{|a| !a.finished?} unless include_finished
       {
-        :id => object_id,
         :started => @started,
         :params => @params,
         :ants => _ants.collect{|a| a.to_hash}

@@ -1,14 +1,20 @@
 #!/usr/bin/ruby
 require 'rubygems'
 require 'ant_hill'
-#AntHill::Configuration.config
 queen = nil
-if ARGV.size == 1
-  queen = AntHill::Queen.queen
-elsif ARGV.size == 2
-  queen = AntHill::Queen.queen
-  filename = ARGV[1]
-  queen.restore_queen(filename)
+pid_file = '/tmp/queen.pid'
+if File.exists?(pid_file)
+  puts "PID file exists at /tmp/queen.pid. Is queen still running?\nIf no, remove this file"
+  exit(1)
+else
+  if ARGV.size == 1
+    queen = AntHill::Queen.queen
+  elsif ARGV.size == 2
+    queen = AntHill::Queen.queen
+    filename = ARGV[1]
+    queen.restore_queen(filename)
+  end
+  Process.daemon
+  File.open(pid_file,'w+'){ |f| f.print Process.pid}
+  queen.service
 end
-queen.service
-

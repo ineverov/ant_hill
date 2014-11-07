@@ -7,7 +7,7 @@ module AntHill
       nil
     end
     def method_missing(method, *args, &block)
-      if @methods.include? methods
+      if @methods.include? method
         @mutex.synchronize do
           @obj.send(method, *args, &block)
         end

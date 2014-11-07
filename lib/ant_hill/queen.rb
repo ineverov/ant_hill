@@ -27,13 +27,13 @@ module AntHill
       end
       @active = true
       @colony_queue = AntColonyQueue.new
-      @process_colony_queue = SynchronizedObject.new([], [:<<, :select, :shift])
+      @process_colony_queue = SynchronizedObject.new([], [:<<, :select, :shift, :each])
       @loaded_params = {}
     end
 
     # Return ants size
     def size
-      @ants.size
+      @colony_queue.size
     end
 
     # Service method
@@ -54,16 +54,8 @@ module AntHill
     # +params+:: params for colony
     # +loaded_params+:: loaded params for respawning queen
     def create_colony(params={}, loaded_params = nil)
-      type = params['type']
-      type = loaded_params[:params]['type'] if loaded_params
-      colony_class = @config.ant_colony_class(type)
-      if colony_class
-        colony = colony_class.new(params)
-        colony.from_hash(loaded_params) if loaded_params
-        @process_colony_queue << colony
-      else
-        logger.error "Couldn't process request #{params} because of previous errors"
-      end
+      colony = @colony_queue.create_colony( params, loaded_params )
+      @process_colony_queue << colony
       colony
     end
 
@@ -134,13 +126,18 @@ module AntHill
             colony = @process_colony_queue.shift
             if colony && !colony.killed?
               colony.get_ants
-              colony_queue.add_colony(colony) unless colony.killed?
+              @colony_queue.add_colony(colony) unless colony.killed?
             end
             @colony_processor_busy = false
           end
           sleep 1
         end
       }
+    end
+
+    # Reset priority for specified creep for all ants
+    def reset_priority_for_creep(creep)
+      @colony_queue.reset_priority_for_creep(creep)
     end
  
     # Return logger for queen
@@ -174,7 +171,7 @@ module AntHill
     private :find_colonies
 
     def find_ant(creep)
-      colony_queue.find_ant(creep)
+      @colony_queue.find_ant(creep)
     end
 
     def kill_colony(params)
@@ -185,7 +182,7 @@ module AntHill
       end
       to_kill.each do |colony|
         colony.kill
-        colony_queue.delete_colony(colony)
+        @colony_queue.delete_colony(colony)
       end
     end
 
@@ -207,26 +204,27 @@ module AntHill
     # Initialize queen from loaded hash
     # +hash+:: queen hash
     def from_hash(hash)
-      colonies = hash[:colonies]
-      tmp = {}
       @config.from_hash(hash[:configuration])
-      colonies.each do |col|
-        colony = create_colony({},col)
-        tmp[col[:id]] = colony
+      @colony_queue.from_hash(hash[:colony_queue])
+      hash[:process_colony_queue].each do |colony_data|
+        colony = @colony_queue.create_colony
+        @process_colony_queue << colony
       end
-      @colonies.each{|c| add_ants(c.ants)}
-      @colony_queue = hash[:colony_queue].collect{|cq| tmp[cq]}
     end
 
     # Convert queen to hash
     # +include_finished+:: should finished colonies and ants be includes to hash?
     def to_hash(include_finished = false)
       {
-        :colonies => @colonies.collect{|ac| ac.to_hash(include_finished) },
-        :colony_queue => @colony_queue.collect{|ac| ac.object_id },
+        :process_colony_queue => @process_colony_queue.collect{|pc| pc.to_hash},
+        :colony_queue => @colony_queue.to_hash,
         :creeps => @creeps.collect{|c| c.to_hash },
         :configuration => @config.to_hash 
       }
+    end
+
+    def daemonize
+      Process.daemon
     end
 
     # Check if queen is active

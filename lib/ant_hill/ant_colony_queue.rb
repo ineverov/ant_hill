@@ -1,9 +1,10 @@
 module AntHill
   class AntColonyQueue
     
-    attr_readed :colony_queue
-    def initialize
-      @colonies = SynchronizedObject.new([], [ :<< , :each, :delete ])
+    attr_reader :colonies
+    def initialize(config = Configuration.config)
+      @config = config
+      @colonies = SynchronizedObject.new([], [ :<< , :each, :delete, :inject ])
     end
 
     # Create colony
@@ -13,42 +14,52 @@ module AntHill
       @colonies << colony
     end
     
+    def create_colony(params={}, loaded_params = nil)
+      type = params['type']
+      type = loaded_params[:params]['type'] if loaded_params
+      colony_class = @config.ant_colony_class(type)
+      if colony_class
+        colony = colony_class.new(params)
+        colony.from_hash(loaded_params) if loaded_params
+      else
+        colony.logger.error "Couldn't process request #{params} because of previous errors"
+      end
+      colony
+    end
+
     # Find ant for creep
     # +creep+:: creep to find ant
     def find_ant(creep)
       winner = nil
       @colonies.each do |colony|
-        winner = max_priority_ant(colony,creep)
+        winner = colony.max_priority_ant(colony,creep)
         break if winner 
       end
       winner
     end
 
-    # Return ant with max priority for creep
-    # +creep+:: creep object
-    def max_priority_ant(colony,creep)
-      max_ant = nil
-      max_priority =-Float::INFINITY
-      colony.ants.select{|a| !a.marked? }.each do |a|
-        next if a.prior < max_priority
-        if (prior=a.priority_cache(creep)) > max_priority
-          max_priority = prior
-          max_ant = a
-        end
-      end
-      max_ant.mark if max_ant
-      max_ant
-    rescue NoFreeConnectionError => e
-      logger.error "Couldn't find any free connection for creep #{creep}. #{e}: #{e.backtrace.join("\n")}"
-      creep.disable!
-      nil
+    def size
+      @colonies.inject(0){|s,c| s+=c.not_processed_size; s}
     end
-    private :max_priority_ant
+
+    def to_hash
+      hash = {
+        :colonies => @colonies.collect{|c| c.to_hash}
+      }
+    end
+
+    def from_hash(hash)
+      hash[:colonies].each do |colony_data|
+        colony = create_colony({},colony_data)
+        add_colony colony
+      end
+    end
+
 
     # Reset priority for specified creep for all ants
     def reset_priority_for_creep(creep)
       @colonies.each do |colony|
-        colony.ants.each{|a| a.delete_cache_for_creep(creep)}
+        colony.reset_priority_for_creep(creep)
       end
     end
     

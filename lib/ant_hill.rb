@@ -14,7 +14,7 @@ module AntHill
 end
 
 # Synchronized object
-require_ant_hill 'synchronized_objecti'
+require_ant_hill 'synchronized_object'
 # Ant colony queue
 require_ant_hill 'ant_colony_queue'
 # Instance of job

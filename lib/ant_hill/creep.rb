@@ -276,6 +276,7 @@ module AntHill
           retry
         else
           logger.error "Abborting... Retries count was #{@retries}/#{@config.creep_error_retries}"
+          disable!
         end
       ensure 
         safe(:quiet){ @connection_pool.destroy }

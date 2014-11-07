@@ -1,0 +1,10 @@
+#!/usr/bin/ruby
+require 'fileutils'
+pid_file = '/tmp/queen.pid'
+if File.exists?(pid_file)
+  Process.kill "TERM", File.read(pid_file).strip.to_i
+  FileUtils.rm pid_file
+else
+  puts "Cannot find PID file (/tmp/queen.pid). Is queen running?"
+  exit(1)
+end
