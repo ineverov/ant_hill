@@ -9,18 +9,15 @@ module AntHill
 
     # Create colony
     # +params+:: params for colony
-    # +loaded_params+:: loaded params for respawning queen
     def add_colony(colony)
       @colonies << colony
     end
     
-    def create_colony(params={}, loaded_params = nil)
+    def create_colony(params={})
       type = params['type']
-      type = loaded_params[:params]['type'] if loaded_params
       colony_class = @config.ant_colony_class(type)
       if colony_class
         colony = colony_class.new(params)
-        colony.from_hash(loaded_params) if loaded_params
       else
         colony.logger.error "Couldn't process request #{params} because of previous errors"
       end
@@ -42,17 +39,13 @@ module AntHill
       @colonies.inject(0){|s,c| s+=c.not_processed_size; s}
     end
 
-    def to_hash
-      hash = {
-        :colonies => @colonies.collect{|c| c.to_hash}
-      }
+    def encode_with(codder)
+      codder['colonies'] = @colonies
     end
 
-    def from_hash(hash)
-      hash[:colonies].each do |colony_data|
-        colony = create_colony({},colony_data)
-        add_colony colony
-      end
+    def init_with(codder)
+      @colonies = codder['colonies']
+      @config = Configuration.config
     end
 
 

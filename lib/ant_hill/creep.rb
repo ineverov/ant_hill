@@ -36,7 +36,6 @@ module AntHill
       @start_time = Time.now
       @force_priority = false
       @modifiers = {}
-      @changed_params = []
     end
 
     #Find ant best matching current configuration based on priority
@@ -56,30 +55,34 @@ module AntHill
 
     # Initialize instance variables from hash
     # +hash+:: creep hash
-    def from_hash(hash)
-      @current_params = (hash[:current_parmas] || {})
-      @custom_data = hash[:custom_data] || {}
-      @status = hash[:status] || :wait
-      @processed = hash[:processed] || 0
-      @passed = hash[:passed] || 0
-      @active = hash[:active].nil? ? true : hash[:active]
-      @start_time = hash[:start_time] || Time.now
-      @hill_cfg.merge!(hash[:hill_cfg] || {})
+    def init_with(codder)
+      @hill_cfg={}
+      @current_params = (codder['current_parmas'] || {})
+      @custom_data = codder['custom_data'] || {}
+      @status = codder['status'] || :wait
+      @processed = codder['processed'] || 0
+      @passed = codder['passed'] || 0
+      @active = codder['active'].nil? ? true : codder['active']
+      @start_time = codder['start_time'] || Time.now
+      @hill_cfg.merge!(codder['hill_cfg'] || {})
+      
+      @config = Configuration.config
+      @queen = Queen.queen
+      @current_ant = nil
+      @force_priority = true
+      @modifiers = {}
     end
 
     # Convert current creep to hash
-    def to_hash
-      {
-        :id => object_id,
-        :current_params => current_params,
-        :custom_data => @custom_data,
-        :status => @status,
-        :processed => @processed,
-        :passed => @passed,
-        :active => @active,
-        :start_time => @start_time,
-        :hill_cfg => @hill_cfg
-      }
+    def encode_with(codder)
+      codder['current_params'] = current_params
+      codder['custom_data'] = @custom_data
+      codder['status'] = @status
+      codder['processed'] = @processed
+      codder['passed'] = @passed
+      codder['active'] = @active
+      codder['start_time'] = @start_time
+      codder['hill_cfg'] = @hill_cfg
     end
 
     # Return modifier object for ant

@@ -1,4 +1,5 @@
 require 'yaml'
+YAML::ENGINE.yamler = 'psych'
 require 'logger'
 require 'fileutils'
 require 'drb'

@@ -9,23 +9,11 @@ module AntHill
     DEFAULT_MONITOR = { 'hostname_lenght' => 15, 'processed_lenght' => 7} 
 
     # Initialize
-    def initialize
+    def initialize(filename)
       @init_time = Time.now
-      @config_file = ''
+      @config_file = filename
       @configuration = {}
     end
-   
-    # Convert config to hash
-    def to_hash
-      {:init_time => @init_time}
-    end
-
-    # Convert hash to config
-    def from_hash(hash)
-      if hash
-        @init_time = hash[:init_time]
-      end
-    end 
 
     # Parse configuration file
     # +filename+:: configuration file path
@@ -143,7 +131,7 @@ module AntHill
       # [+filename+]:: config filename or first argument
       def config(filename = ARGV[0])
         return @@config if defined?(@@config)
-        @@config =  self.new
+        @@config =  self.new(filename)
         @@config.parse_yaml(filename)
         @@config.validate
         @@config.require_libs

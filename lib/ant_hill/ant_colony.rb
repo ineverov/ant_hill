@@ -8,10 +8,6 @@ module AntHill
     # +status+:: colony status
     attr_accessor :params, :ants, :status
     
-    # Attribute reader
-    # +logger+:: logger for AntColony
-    attr_reader :logger
-    
     include DRbUndumped
 
     # Initailize of +AntColony+
@@ -20,23 +16,27 @@ module AntHill
     def initialize(params={}, config = Configuration.config )
       @params = params
       @config = config
-      @logger = Log.logger_for(:ant_colony, config)
       @created_at = Time.now
       @ants = []
       @started = false
     end
 
     # Create +AntColony+ from hash
-    def from_hash(hash = nil)
-      if hash
-        @started = hash[:started]
-        @params = hash[:params]
-        @ants = hash[:ants].collect{|ant_data|
-          ant = Ant.new(ant_data[:params], self)
-          ant.from_hash(ant_data)
-          ant
-        }
-      end
+    def init_with(codder)
+      @started = codder['started']
+      @params = codder['params']
+      @ants = codder['ants']
+      @created_at = codder['created_at']
+      @config = Configuration.config
+    end
+
+    # Convert +AntColony+ into hash
+    # +include_finished+:: include in hash finished +Ant+'s (default: false)
+    def encode_with(codder)
+      codder['started'] = @started
+      codder['params'] = @params
+      codder['ants'] = @ants
+      codder['created_at'] = @created_at
     end
     
     # Return ant with max priority for creep
@@ -66,18 +66,6 @@ module AntHill
     # Reset priority for specified creep for all ants
     def reset_priority_for_creep(creep)
       @ants.each{|a| a.delete_cache_for_creep(creep)}
-    end
-
-    # Convert +AntColony+ into hash
-    # +include_finished+:: include in hash finished +Ant+'s (default: false)
-    def to_hash(include_finished = false)
-      _ants = @ants
-      _ants = @ants.select{|a| !a.finished?} unless include_finished
-      {
-        :started => @started,
-        :params => @params,
-        :ants => _ants.collect{|a| a.to_hash}
-      }
     end
 
     # Ger +CreepModifier+ class for +AntColony+ type
@@ -148,7 +136,11 @@ module AntHill
 
     # Return logger
     def logger
-      Log.logger_for :ant_colony
+      Log.logger_for logger_name
+    end
+
+    def logger_name
+      self.class.name
     end
 
     # Trigger colony_started if not already started

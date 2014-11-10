@@ -8,15 +8,16 @@ if File.exists?(pid_file)
   exit(1)
 else
   if ARGV.size == 1
-    queen = AntHill::Queen.queen
+    queen = AntHill::Queen.queen(ARGV[0])
   elsif ARGV.size == 2
-    queen = AntHill::Queen.queen
-    filename = ARGV[1]
-    queen.restore_queen(filename)
+    queen = AntHill::Queen.restore(ARGV[0], ARGV[1])
   end
   $stdout.reopen(File.new('spawn_queen.log', "w+"))
   $stderr.reopen(File.new('spawn_queen.log', 'a+'))
   Process.daemon true, true
   File.open(pid_file,'w+'){ |f| f.print Process.pid}
+  at_exit do
+    FileUtils.rm('/tmp/queen.pid')
+  end
   queen.service
 end

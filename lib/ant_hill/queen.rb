@@ -17,7 +17,6 @@ module AntHill
     # +config+:: Configuration object
     def initialize(config = Configuration.config)
       @config = config
-      @colonies = []
       @drb_host = config.drb_host
       @drb_port = config.drb_port
       trap("INT") do
@@ -28,7 +27,6 @@ module AntHill
       @active = true
       @colony_queue = AntColonyQueue.new
       @process_colony_queue = SynchronizedObject.new([], [:<<, :select, :shift, :each])
-      @loaded_params = {}
     end
 
     # Return ants size
@@ -52,9 +50,8 @@ module AntHill
 
     # Create colony
     # +params+:: params for colony
-    # +loaded_params+:: loaded params for respawning queen
-    def create_colony(params={}, loaded_params = nil)
-      colony = @colony_queue.create_colony( params, loaded_params )
+    def create_colony(params={})
+      colony = @colony_queue.create_colony( params )
       @process_colony_queue << colony
       colony
     end
@@ -64,22 +61,26 @@ module AntHill
     #   Example: [{'name' => 'creep1', 'host'=> 'hostname', 'user' => 'login_user', 'password' => 'user_password'}]
     def spawn_creeps(creeps)
       @creeps = []
-      loaded_params = @loaded_params[:creeps]
+      loaded_creeps = @loaded_creeps
       creeps.each do |creep_config|
-        creep_loaded = loaded_params && loaded_params.find{|cr| cr[:hill_cfg]['name'] == creep_config['name'] } || {}
-        add_creep(creep_config, creep_loaded)
+        loaded_creep = loaded_creeps.find{|c| c.name == creep_config['name'] } if loaded_creeps 
+        add_creep(creep_config, loaded_creep)
       end
+      @loaded_creeps=nil
     end
 
     # Adding new creep and creatinf thread for it
     # +creep_config+:: hash of params for creep
     #   Example: {'name' => 'creep1', 'host'=> 'hostname', 'user' => 'login_user', 'password' => 'user_password'}
     # +creep_loaded+:: creep loaded from saved file 
-    def add_creep(creep_config, creep_loaded={})
+    def add_creep(creep_config, creep_loaded=nil)
       @threads << Thread.new{
-        c = Creep.new
+        if creep_loaded
+          c = creep_loaded
+        else
+          c = Creep.new
+        end
         c.configure(creep_config)
-        c.from_hash(creep_loaded)
         @creeps << c
         Thread.current["name"]=c.to_s
         c.service
@@ -108,7 +109,7 @@ module AntHill
       @threads << Thread.new{
         begin 
           Thread.current["name"]="main"
-          DRb.start_service "druby://#{@drb_host || DRB_HOST}:#{@drb_port || DRB_PORT}", self
+          DRb.start_service "druby://#{@config.drb_host || DRB_HOST}:#{@config.drb_port || DRB_PORT}", self
           DRb.thread.join
         rescue => e
           logger.error "There was an error in drb_queen =(. Details: #{e}\n#{e.backtrace}"
@@ -189,38 +190,25 @@ module AntHill
     # Save queen to file
     # +filename+:: filename to store queen data
     def save_queen(filename)
-      queen_hash = to_hash
-      File.open(filename, "w+") { |f| f.puts queen_hash.to_yaml}
+      File.open(filename, "w+") { |f| f.puts self.to_yaml}
     end
 
-    # Restore queen from file
-    # +filename+:: filenme with queen data
-    def restore_queen(filename)
-      hash = YAML::load_file(filename)
-      @loaded_params = hash
-      from_hash(hash)
-    end
 
     # Initialize queen from loaded hash
     # +hash+:: queen hash
-    def from_hash(hash)
-      @config.from_hash(hash[:configuration])
-      @colony_queue.from_hash(hash[:colony_queue])
-      hash[:process_colony_queue].each do |colony_data|
-        colony = @colony_queue.create_colony
-        @process_colony_queue << colony
-      end
+    def init_with(codder)
+      @config = Configuration.config
+      @colony_queue = codder['colony_queue']
+      @process_colony_queue = codder['process_colony_queue']
+      @loaded_creeps = codder['creeps']
     end
 
     # Convert queen to hash
     # +include_finished+:: should finished colonies and ants be includes to hash?
-    def to_hash(include_finished = false)
-      {
-        :process_colony_queue => @process_colony_queue.collect{|pc| pc.to_hash},
-        :colony_queue => @colony_queue.to_hash,
-        :creeps => @creeps.collect{|c| c.to_hash },
-        :configuration => @config.to_hash 
-      }
+    def encode_with(codder)
+      codder['process_colony_queue'] = @process_colony_queue
+      codder['colony_queue'] = @colony_queue
+      codder['creeps'] = @creeps
     end
 
     def daemonize
@@ -238,8 +226,16 @@ module AntHill
       end
 
       # Return or create current queen
-      def queen
+      def queen(config_filename=nil)
+        Configuration.config(config_filename) if config_filename
         @@queen ||= self.new
+      end
+
+      # Restore queen from file
+      # +filename+:: filenme with queen data
+      def restore(config_file, queen_save_file)
+        Configuration.config(config_file)
+        YAML::load_file(queen_save_file)
       end
 
       # Connect to DRb interface of queen

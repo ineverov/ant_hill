@@ -90,24 +90,28 @@ module AntHill
     end
 
     # Create Ant from hash
-    def from_hash(data)
-      @type = data[:type]
-      @status = data[:status]
-      @executeion_status = data[:executeion_status]
-      @prior = data[:prior]
-      @output = data[:output]
+    def init_with(codder)
+      @type = codder['type']
+      @status = codder['status']
+      @execution_status = codder['execution_status']
+      @prior = codder['prior']
+      @output = codder['output']
+      @colony = codder['colony']
+      @params = @colony.params_for_ant.merge(codder['params'])
+      @cached_priorities = {}
+      @priority_cache_mutex = Mutex.new
+      @config = Configuration.config
     end
 
     # Convert Ant to hash
-    def to_hash
-      {
-        :type => @type,
-        :params => diff_with_colony,
-        :status => @status,
-        :execution_status => @execution_status,
-        :prior => @prior,
-        :output => @output
-      }
+    def encode_with codder
+      codder['type'] = @type
+      codder['params'] = diff_with_colony
+      codder['status'] = @status
+      codder['execution_status'] = @execution_status
+      codder['prior'] = @prior
+      codder['output'] = @output
+      codder['colony'] = @colony
     end
 
     # Re-process current ant
