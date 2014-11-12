@@ -4,7 +4,7 @@ module AntHill
     # +creeps+:: list of creeps
     # +ants+:: list of ants
     # +colonies+:: list of colonies
-    attr_reader :creeps, :ants, :colonies
+    attr_reader :creeps, :ants, :colony_queue
 
     # Default host for DRb
     DRB_HOST = '127.0.0.1'
@@ -124,11 +124,12 @@ module AntHill
         while true do
           if @active
             @colony_processor_busy = true
-            colony = @process_colony_queue.shift
-            if colony && !colony.killed?
-              colony.get_ants
-              @colony_queue.add_colony(colony) unless colony.killed?
+            @colony = @process_colony_queue.shift
+            if @colony && !@colony.killed?
+              @colony.get_ants
+              @colony_queue.add_colony(@colony) unless colony.killed?
             end
+            @colony=nil
             @colony_processor_busy = false
           end
           sleep 1
@@ -190,7 +191,7 @@ module AntHill
     # Save queen to file
     # +filename+:: filename to store queen data
     def save_queen(filename)
-      File.open(filename, "w+") { |f| f.puts self.to_yaml}
+      File.open(filename, "w+") { |f| f.puts self.to_hash.to_yaml}
     end
 
 
@@ -210,6 +211,22 @@ module AntHill
       codder['colony_queue'] = @colony_queue
       codder['creeps'] = @creeps
     end
+ 
+    def to_hash
+      {}.tap{ |codder|
+        codder['process_colony_queue'] = @process_colony_queue.collect{|colony| colony.to_hash }
+        codder['colony_queue'] = @colony_queue.to_hash
+        codder['creeps'] = @creeps.collect{|creep| creep.to_hash}
+        codder['current_colony'] = @colony.to_hash
+      }
+    end
+
+    def from_hash(codder)
+      @colony_queue = AntColonyQueue.new.tap{ |acq| acq.from_hash(codder['colony_queue']) }
+      @process_colony_queue = codder['process_colony_queue'].collect{|colony_hash| AntColony.new.tap{|ac| ac.from_hash(colony_hash)}}
+      @loaded_creeps = codder['creeps'].collect{|creep_hash| Creep.new(self).tap{|creep| creep.from_hash(creep_hash)}}
+      @process_colony_queue << AntColony.new.tap{|ac| ac.from_hash(codder['current_colony'])}
+    end
 
     def daemonize
       Process.daemon
@@ -225,6 +242,7 @@ module AntHill
         @@mutex.locked?
       end
 
+
       # Return or create current queen
       def queen(config_filename=nil)
         Configuration.config(config_filename) if config_filename
@@ -235,7 +253,8 @@ module AntHill
       # +filename+:: filenme with queen data
       def restore(config_file, queen_save_file)
         Configuration.config(config_file)
-        YAML::load_file(queen_save_file)
+        hash = YAML::load_file(queen_save_file)
+        Queen.new.tap{|q| q.from_hash(hash)}
       end
 
       # Connect to DRb interface of queen

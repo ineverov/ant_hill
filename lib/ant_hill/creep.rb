@@ -9,9 +9,9 @@ module AntHill
     # +processed+:: number of ants processed
     # +passed+:: number of successfully processed ants
     # +start_time+:: status time
-    # +hill_cfg+:: creep configuration
+    # +creep_cfg+:: creep configuration
     # +current_ant+:: currently processing ant
-    attr_reader :host, :user, :password, :status, :processed, :passed, :start_time, :hill_cfg, :current_ant
+    attr_reader :host, :user, :password, :status, :processed, :passed, :start_time, :creep_cfg, :current_ant
     # +active+:: node activness
     # +custom_data+:: custom data hash
     # +force_priority+:: If true recalculate priority for this creep instaed of taking cahced values
@@ -56,7 +56,7 @@ module AntHill
     # Initialize instance variables from hash
     # +hash+:: creep hash
     def init_with(codder)
-      @hill_cfg={}
+      @creep_cfg={}
       @current_params = (codder['current_parmas'] || {})
       @custom_data = codder['custom_data'] || {}
       @status = codder['status'] || :wait
@@ -64,7 +64,7 @@ module AntHill
       @passed = codder['passed'] || 0
       @active = codder['active'].nil? ? true : codder['active']
       @start_time = codder['start_time'] || Time.now
-      @hill_cfg.merge!(codder['hill_cfg'] || {})
+      @creep_cfg.merge!(codder['creep_cfg'] || {})
       
       @config = Configuration.config
       @queen = Queen.queen
@@ -82,7 +82,34 @@ module AntHill
       codder['passed'] = @passed
       codder['active'] = @active
       codder['start_time'] = @start_time
-      codder['hill_cfg'] = @hill_cfg
+      codder['creep_cfg'] = @creep_cfg
+    end
+
+    # Initialize instance variables from hash
+    # +hash+:: creep hash
+    def from_hash(codder)
+      @current_params = (codder['current_parmas'] || {})
+      @custom_data = codder['custom_data'] || {}
+      @status = codder['status'] || :wait
+      @processed = codder['processed'] || 0
+      @passed = codder['passed'] || 0
+      @active = codder['active'].nil? ? true : codder['active']
+      @start_time = codder['start_time'] || Time.now
+      @creep_cfg = codder['start_time'] || Time.now
+    end
+
+    # Convert current creep to hash
+    def to_hash
+      {}.tap{|codder|
+        codder['current_params'] = current_params
+        codder['custom_data'] = @custom_data
+        codder['status'] = @status
+        codder['processed'] = @processed
+        codder['passed'] = @passed
+        codder['active'] = @active
+        codder['start_time'] = @start_time
+        codder['creep_cfg'] = @creep_cfg
+      }
     end
 
     # Return modifier object for ant
@@ -179,11 +206,11 @@ module AntHill
     # Setup creep configuration
     # +creep_configuration+:: Ant object
     def configure(creep_configuration)
-      @hill_cfg = creep_configuration
-      @host = @hill_cfg['host']
-      @user = @hill_cfg['user']
-      @password = @hill_cfg['password']
-      @name = @hill_cfg['name']
+      @creep_cfg = creep_configuration
+      @host = @creep_cfg['host']
+      @user = @creep_cfg['user']
+      @password = @creep_cfg['password']
+      @name = @creep_cfg['name']
       @connection_pool = @config.get_connection_class.new(self)
     end
  
@@ -229,7 +256,7 @@ module AntHill
     # Create string representation of Creep
     def to_s
       took_time = Time.at(Time.now - @start_time).gmtime.strftime('%R:%S')
-      "%s (%i): %s (%s): %s " % [@hill_cfg['host'], @processed, status, took_time,  @current_ant]
+      "%s (%i): %s (%s): %s " % [@creep_cfg['host'], @processed, status, took_time,  @current_ant]
     end
 
     # Retunr if creep is active

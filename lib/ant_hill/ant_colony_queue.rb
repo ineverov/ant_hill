@@ -48,6 +48,17 @@ module AntHill
       @config = Configuration.config
     end
 
+    def to_hash
+      {}.tap{|codder|
+        codder['colonies'] = @colonies.collect{|c| c.to_hash}
+      }
+    end
+
+    def from_hash(codder)
+      codder['colonies'].each do |colony_hash|
+        add_colony(AntColony.new.tap{|c| c.from_hash(colony_hash)})
+      end
+    end
 
     # Reset priority for specified creep for all ants
     def reset_priority_for_creep(creep)

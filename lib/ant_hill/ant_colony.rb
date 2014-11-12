@@ -26,6 +26,9 @@ module AntHill
       @started = codder['started']
       @params = codder['params']
       @ants = codder['ants']
+      @ants.each do |a|
+        a.instance_variable_set(:@colony, self)
+      end
       @created_at = codder['created_at']
       @config = Configuration.config
     end
@@ -37,6 +40,25 @@ module AntHill
       codder['params'] = @params
       codder['ants'] = @ants
       codder['created_at'] = @created_at
+    end
+    
+    # Create +AntColony+ from hash
+    def from_hash(codder)
+      @started = codder['started']
+      @params = codder['params']
+      @ants = codder['ants'].collect{|ant_hash| Ant.new({},self).tap{|a| a.from_hash(ant_hash)}}
+      @created_at = codder['created_at']
+    end
+
+    # Convert +AntColony+ into hash
+    # +include_finished+:: include in hash finished +Ant+'s (default: false)
+    def to_hash
+      {}.tap{ |codder|
+        codder['started'] = @started
+        codder['params'] = @params
+        codder['ants'] = @ants.collect{|ant| ant.to_hash}
+        codder['created_at'] = @created_at
+      }
     end
     
     # Return ant with max priority for creep

@@ -114,6 +114,27 @@ module AntHill
       codder['colony'] = @colony
     end
 
+    # Create Ant from hash
+    def from_hash(codder)
+      @type = codder['type']
+      @status = codder['status']
+      @execution_status = codder['execution_status']
+      @prior = codder['prior']
+      @output = codder['output']
+      @params = @colony.params_for_ant.merge(codder['params'])
+    end
+
+    # Convert Ant to hash
+    def to_hash
+      {}.tap{|codder|
+        codder['type'] = @type
+        codder['params'] = diff_with_colony
+        codder['status'] = @status
+        codder['execution_status'] = @execution_status
+        codder['prior'] = @prior
+        codder['output'] = @output
+      }
+    end
     # Re-process current ant
     def return_to_queue
       unmark

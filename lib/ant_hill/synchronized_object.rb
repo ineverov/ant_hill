@@ -1,5 +1,6 @@
 module AntHill
   class SynchronizedObject < BasicObject
+    attr_reader :obj
     def initialize(obj, methods = [])
       @obj = obj
       @methods = methods
