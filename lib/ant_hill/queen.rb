@@ -194,24 +194,6 @@ module AntHill
       File.open(filename, "w+") { |f| f.puts self.to_hash.to_yaml}
     end
 
-
-    # Initialize queen from loaded hash
-    # +hash+:: queen hash
-    def init_with(codder)
-      @config = Configuration.config
-      @colony_queue = codder['colony_queue']
-      @process_colony_queue = codder['process_colony_queue']
-      @loaded_creeps = codder['creeps']
-    end
-
-    # Convert queen to hash
-    # +include_finished+:: should finished colonies and ants be includes to hash?
-    def encode_with(codder)
-      codder['process_colony_queue'] = @process_colony_queue
-      codder['colony_queue'] = @colony_queue
-      codder['creeps'] = @creeps
-    end
- 
     def to_hash
       {}.tap{ |codder|
         codder['process_colony_queue'] = @process_colony_queue.collect{|colony| colony.to_hash }

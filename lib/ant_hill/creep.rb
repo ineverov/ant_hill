@@ -55,38 +55,6 @@ module AntHill
 
     # Initialize instance variables from hash
     # +hash+:: creep hash
-    def init_with(codder)
-      @creep_cfg={}
-      @current_params = (codder['current_parmas'] || {})
-      @custom_data = codder['custom_data'] || {}
-      @status = codder['status'] || :wait
-      @processed = codder['processed'] || 0
-      @passed = codder['passed'] || 0
-      @active = codder['active'].nil? ? true : codder['active']
-      @start_time = codder['start_time'] || Time.now
-      @creep_cfg.merge!(codder['creep_cfg'] || {})
-      
-      @config = Configuration.config
-      @queen = Queen.queen
-      @current_ant = nil
-      @force_priority = true
-      @modifiers = {}
-    end
-
-    # Convert current creep to hash
-    def encode_with(codder)
-      codder['current_params'] = current_params
-      codder['custom_data'] = @custom_data
-      codder['status'] = @status
-      codder['processed'] = @processed
-      codder['passed'] = @passed
-      codder['active'] = @active
-      codder['start_time'] = @start_time
-      codder['creep_cfg'] = @creep_cfg
-    end
-
-    # Initialize instance variables from hash
-    # +hash+:: creep hash
     def from_hash(codder)
       @current_params = (codder['current_parmas'] || {})
       @custom_data = codder['custom_data'] || {}

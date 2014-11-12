@@ -88,32 +88,7 @@ module AntHill
         res
       }
     end
-
-    # Create Ant from hash
-    def init_with(codder)
-      @type = codder['type']
-      @status = codder['status']
-      @execution_status = codder['execution_status']
-      @prior = codder['prior']
-      @output = codder['output']
-      @colony = codder['colony']
-      @params = @colony.params_for_ant.merge(codder['params'])
-      @cached_priorities = {}
-      @priority_cache_mutex = Mutex.new
-      @config = Configuration.config
-    end
-
-    # Convert Ant to hash
-    def encode_with codder
-      codder['type'] = @type
-      codder['params'] = diff_with_colony
-      codder['status'] = @status
-      codder['execution_status'] = @execution_status
-      codder['prior'] = @prior
-      codder['output'] = @output
-      codder['colony'] = @colony
-    end
-
+    
     # Create Ant from hash
     def from_hash(codder)
       @type = codder['type']

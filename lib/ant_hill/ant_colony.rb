@@ -22,27 +22,6 @@ module AntHill
     end
 
     # Create +AntColony+ from hash
-    def init_with(codder)
-      @started = codder['started']
-      @params = codder['params']
-      @ants = codder['ants']
-      @ants.each do |a|
-        a.instance_variable_set(:@colony, self)
-      end
-      @created_at = codder['created_at']
-      @config = Configuration.config
-    end
-
-    # Convert +AntColony+ into hash
-    # +include_finished+:: include in hash finished +Ant+'s (default: false)
-    def encode_with(codder)
-      codder['started'] = @started
-      codder['params'] = @params
-      codder['ants'] = @ants
-      codder['created_at'] = @created_at
-    end
-    
-    # Create +AntColony+ from hash
     def from_hash(codder)
       @started = codder['started']
       @params = codder['params']

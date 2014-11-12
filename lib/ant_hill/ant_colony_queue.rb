@@ -39,15 +39,6 @@ module AntHill
       @colonies.inject(0){|s,c| s+=c.not_processed_size; s}
     end
 
-    def encode_with(codder)
-      codder['colonies'] = @colonies
-    end
-
-    def init_with(codder)
-      @colonies = codder['colonies']
-      @config = Configuration.config
-    end
-
     def to_hash
       {}.tap{|codder|
         codder['colonies'] = @colonies.collect{|c| c.to_hash}
