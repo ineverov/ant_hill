@@ -4,7 +4,7 @@ module AntHill
     attr_reader :colonies
     def initialize(config = Configuration.config)
       @config = config
-      @colonies = SynchronizedObject.new([], [ :<< , :each, :delete, :inject ])
+      @colonies = SynchronizedObject.new([], [ :<< , :each, :delete, :inject, :tap ])
     end
 
     # Create colony
@@ -34,6 +34,35 @@ module AntHill
       end
       winner
     end
+
+    def promote_all_with(params)
+      move_all_with(params, :up)
+    end
+
+    def demote_all_with(params)
+      move_all_with(params, :down)
+    end
+
+    def move_all_with(params, direction = :up)
+      to_move = @colonies.select{|c| c.is_it_me?(params)} || []
+      to_move.each do |colony|
+        move_colony(colony, direction)
+      end
+    end
+    private :move_all_with
+
+    def move_colony(colony, direction = :up)
+      index = @colonies.index(colony)
+      new_index = direction == :up ? index-1 : index+1
+      if new_index >= 0 && @colonies[new_index]
+        @colonies.tap do |colonies|
+          prev = colonies[new_index]
+          colonies[index]=colonies[new_index]
+          colonies[new_index]=colony
+        end
+      end
+    end
+    private :move_colony
 
     def size
       @colonies.inject(0){|s,c| s+=c.not_processed_size; s}
