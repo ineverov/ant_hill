@@ -210,8 +210,8 @@ module AntHill
       @process_colony_queue << AntColony.new.tap{|ac| ac.from_hash(codder['current_colony'])}
     end
 
-    def daemonize
-      Process.daemon
+    # Depricated method. Stub it for backward compatibility
+    def add_ants(*args)
     end
 
     # Check if queen is active

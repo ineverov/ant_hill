@@ -141,7 +141,7 @@ module AntHill
     end
 
     def logger_name
-      self.class.name
+      self.class.name.gsub("::", "_")
     end
 
     # Trigger colony_started if not already started
