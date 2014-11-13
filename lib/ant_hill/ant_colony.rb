@@ -17,7 +17,7 @@ module AntHill
       @params = params
       @config = config
       @created_at = Time.now
-      @ants = []
+      @ants = SynchronizedObject.new([], [:<<, :concat, :collect, :select, :count, :each, :all?, :empty?])
       @started = false
     end
 
@@ -25,7 +25,7 @@ module AntHill
     def from_hash(codder)
       @started = codder['started']
       @params = codder['params']
-      @ants = codder['ants'].collect{|ant_hash| Ant.new({},self).tap{|a| a.from_hash(ant_hash)}}
+      @ants.concat( codder['ants'].collect{|ant_hash| Ant.new({},self).tap{|a| a.from_hash(ant_hash)}})
       @created_at = codder['created_at']
     end
 
@@ -94,11 +94,10 @@ module AntHill
 
     # Find ants for colony params
     def get_ants
-      @ants = []
       ant_larvas = search_ants(params)
-      @ants = ant_larvas.collect{|larva|
+      @ants.concat(ant_larvas.collect{|larva|
         Ant.new(larva, self)
-      }
+      })
       after_search
       @ants
     rescue => e

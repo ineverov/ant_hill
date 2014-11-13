@@ -133,8 +133,8 @@ module AntHill
     end
 
     def kill
-      mark
-      finish
+      mark unless marked?
+      finish unless status == :finished
     end
 
     # Finish ant processing
