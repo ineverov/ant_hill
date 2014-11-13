@@ -237,7 +237,8 @@ module AntHill
       def restore(config_file, queen_save_file)
         Configuration.config(config_file)
         hash = YAML::load_file(queen_save_file)
-        Queen.new.tap{|q| q.from_hash(hash)}
+        @@queen = Queen.new
+        @@queen.tap{|q| q.from_hash(hash)}
       end
 
       # Connect to DRb interface of queen
