@@ -35,6 +35,7 @@ module AntHill
       {}.tap{ |codder|
         codder['started'] = @started
         codder['params'] = @params
+        codder['type'] = @params['type']
         codder['ants'] = @ants.collect{|ant| ant.to_hash}
         codder['created_at'] = @created_at
       }
