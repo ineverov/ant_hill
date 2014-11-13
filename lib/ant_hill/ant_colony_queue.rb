@@ -13,11 +13,12 @@ module AntHill
       @colonies << colony
     end
     
-    def create_colony(params={})
-      type = params['type']
+    def create_colony(params={}, loaded_hash=nil)
+      type = params['type'] || loaded_hash && loaded_hash['type']
       colony_class = @config.ant_colony_class(type)
       if colony_class
         colony = colony_class.new(params)
+        colony.from_hash(loaded_hash) if loaded_hash
       else
         colony.logger.error "Couldn't process request #{params} because of previous errors"
       end
@@ -76,7 +77,7 @@ module AntHill
 
     def from_hash(codder)
       codder['colonies'].each do |colony_hash|
-        add_colony(AntColony.new.tap{|c| c.from_hash(colony_hash)})
+        add_colony(create_colony({},colony_hash))
       end
     end
 

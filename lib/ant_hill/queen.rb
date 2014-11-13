@@ -199,15 +199,16 @@ module AntHill
         codder['process_colony_queue'] = @process_colony_queue.collect{|colony| colony.to_hash }
         codder['colony_queue'] = @colony_queue.to_hash
         codder['creeps'] = @creeps.collect{|creep| creep.to_hash}
-        codder['current_colony'] = @colony.to_hash
+        codder['current_colony'] = @colony.to_hash if @colony
       }
     end
 
     def from_hash(codder)
       @colony_queue = AntColonyQueue.new.tap{ |acq| acq.from_hash(codder['colony_queue']) }
-      @process_colony_queue = codder['process_colony_queue'].collect{|colony_hash| AntColony.new.tap{|ac| ac.from_hash(colony_hash)}}
+      process_colony_queue = codder['process_colony_queue']
+      process_colony_queue << codder['current_colony'] if codder['current_colony']
+      @process_colony_queue = codder['process_colony_queue'].collect{|colony_hash| @colony_queue.create_colony({},colony_hash)}
       @loaded_creeps = codder['creeps'].collect{|creep_hash| Creep.new(self).tap{|creep| creep.from_hash(creep_hash)}}
-      @process_colony_queue << AntColony.new.tap{|ac| ac.from_hash(codder['current_colony'])}
     end
 
     # Depricated method. Stub it for backward compatibility
