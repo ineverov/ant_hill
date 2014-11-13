@@ -132,6 +132,11 @@ module AntHill
       colony.colony_ant_started
     end
 
+    def kill
+      mark
+      finish
+    end
+
     # Finish ant processing
     def finish
       change_status(:finished)

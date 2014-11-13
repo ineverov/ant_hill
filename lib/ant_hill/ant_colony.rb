@@ -193,7 +193,7 @@ module AntHill
     def kill
       @status = :killed
       ants.each do |ant|
-        ant.change_status(:finished) if ant.status == :not_started
+        ant.kill
       end
     end
 
