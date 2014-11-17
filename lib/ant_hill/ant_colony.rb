@@ -8,10 +8,6 @@ module AntHill
     # +status+:: colony status
     attr_accessor :params, :ants, :status
     
-    # Attribute reader
-    # +logger+:: logger for AntColony
-    attr_reader :logger
-    
     include DRbUndumped
 
     # Initailize of +AntColony+
@@ -20,36 +16,58 @@ module AntHill
     def initialize(params={}, config = Configuration.config )
       @params = params
       @config = config
-      @logger = Log.logger_for(:ant_colony, config)
       @created_at = Time.now
-      @ants = []
+      @ants = SynchronizedObject.new([], [:<<, :concat, :collect, :select, :count, :each])
       @started = false
     end
 
     # Create +AntColony+ from hash
-    def from_hash(hash = nil)
-      if hash
-        @started = hash[:started]
-        @params = hash[:params]
-        @ants = hash[:ants].collect{|ant_data|
-          ant = Ant.new(ant_data[:params], self)
-          ant.from_hash(ant_data)
-          ant
-        }
-      end
+    def from_hash(codder)
+      @started = codder['started']
+      @params = codder['params']
+      @ants.concat( codder['ants'].collect{|ant_hash| Ant.new({},self).tap{|a| a.from_hash(ant_hash)}})
+      @created_at = codder['created_at']
     end
 
     # Convert +AntColony+ into hash
     # +include_finished+:: include in hash finished +Ant+'s (default: false)
-    def to_hash(include_finished = false)
-      _ants = @ants
-      _ants = @ants.select{|a| !a.finished?} unless include_finished
-      {
-        :id => object_id,
-        :started => @started,
-        :params => @params,
-        :ants => _ants.collect{|a| a.to_hash}
+    def to_hash
+      {}.tap{ |codder|
+        codder['started'] = @started
+        codder['params'] = @params
+        codder['type'] = @params['type']
+        codder['ants'] = @ants.collect{|ant| ant.to_hash}
+        codder['created_at'] = @created_at
       }
+    end
+    
+    # Return ant with max priority for creep
+    # +creep+:: creep object
+    def max_priority_ant(colony,creep)
+      max_ant = nil
+      max_priority =-Float::INFINITY
+      colony.ants.select{|a| !a.marked? }.each do |a|
+        next if a.prior < max_priority
+        if (prior=a.priority_cache(creep)) > max_priority
+          max_priority = prior
+          max_ant = a
+        end
+      end
+      max_ant.mark if max_ant
+      max_ant
+    rescue NoFreeConnectionError => e
+      logger.error "Couldn't find any free connection for creep #{creep}. #{e}: #{e.backtrace.join("\n")}"
+      creep.disable!
+      nil
+    end
+
+    def not_processed_size
+      @ants.count{|a| !a.marked? }
+    end
+    
+    # Reset priority for specified creep for all ants
+    def reset_priority_for_creep(creep)
+      @ants.each{|a| a.delete_cache_for_creep(creep)}
     end
 
     # Ger +CreepModifier+ class for +AntColony+ type
@@ -76,11 +94,10 @@ module AntHill
 
     # Find ants for colony params
     def get_ants
-      @ants = []
       ant_larvas = search_ants(params)
-      @ants = ant_larvas.collect{|larva|
+      @ants.concat(ant_larvas.collect{|larva|
         Ant.new(larva, self)
-      }
+      })
       after_search
       @ants
     rescue => e
@@ -120,7 +137,11 @@ module AntHill
 
     # Return logger
     def logger
-      Log.logger_for :ant_colony
+      Log.logger_for logger_name
+    end
+
+    def logger_name
+      self.class.name.gsub("::", "_")
     end
 
     # Trigger colony_started if not already started
@@ -172,7 +193,7 @@ module AntHill
     def kill
       @status = :killed
       ants.each do |ant|
-        ant.change_status(:finished) if ant.status == :not_started
+        ant.kill
       end
     end
 

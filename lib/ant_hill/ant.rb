@@ -37,22 +37,42 @@ module AntHill
       @prior = (config.init_time - Time.now).to_i
       # Add colony priority
       @prior += colony.get_priority
+      @priority_cache_mutex = Mutex.new
+    end
+
+    def marked?
+      @marked
+    end
+
+    def mark
+      @marked = true
+    end
+
+    def unmark
+      @marked = false
     end
 
     # Cache of creeps priorities
     def priority_cache(creep)
-      @cached_priorities[creep] ||= creep.priority(self)
+      @priority_cache_mutex.synchronize do 
+        id = creep.object_id
+        @cached_priorities[id] ||= creep.priority(self)
+      end
     end
 
     # Delete priority cache for specified creep
     # +creep+:: +Creep+ for which delete cache
     def delete_cache_for_creep(creep)
-      @cached_priorities.delete(creep)
+      @priority_cache_mutex.synchronize do
+        @cached_priorities.delete(creep.object_id)
+      end
     end
 
     # Deelte all priprities cahce
     def delete_cache
-      @cached_priorities = {}
+      @priority_cache_mutex.synchronize do
+        @cached_priorities = {}
+      end
     end
 
     # Create string representation of Ant
@@ -68,31 +88,31 @@ module AntHill
         res
       }
     end
-
+    
     # Create Ant from hash
-    def from_hash(data)
-      @type = data[:type]
-      @status = data[:status]
-      @executeion_status = data[:executeion_status]
-      @prior = data[:prior]
-      @output = data[:output]
+    def from_hash(codder)
+      @type = codder['type']
+      @status = codder['status']
+      @execution_status = codder['execution_status']
+      @prior = codder['prior']
+      @output = codder['output']
+      @params = @colony.params_for_ant.merge(codder['params'])
     end
 
     # Convert Ant to hash
     def to_hash
-      {
-        :type => @type,
-        :params => diff_with_colony,
-        :status => @status,
-        :execution_status => @execution_status,
-        :prior => @prior,
-        :output => @output
+      {}.tap{|codder|
+        codder['type'] = @type
+        codder['params'] = diff_with_colony
+        codder['status'] = @status
+        codder['execution_status'] = @execution_status
+        codder['prior'] = @prior
+        codder['output'] = @output
       }
     end
-
     # Re-process current ant
-    def return_to_queue(queen = Queen.queen)
-      queen.add_ants([self])
+    def return_to_queue
+      unmark
     end
 
     # Update status for ant
@@ -112,6 +132,11 @@ module AntHill
       colony.colony_ant_started
     end
 
+    def kill
+      mark unless marked?
+      finish unless status == :finished
+    end
+
     # Finish ant processing
     def finish
       change_status(:finished)
@@ -120,7 +145,7 @@ module AntHill
 
     # Check if ant had been finished
     def finished?
-      status == :finished
+      marked? && (status == :finished)
     end
   end
 end

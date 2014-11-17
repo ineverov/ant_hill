@@ -4,7 +4,7 @@ module AntHill
     # +creeps+:: list of creeps
     # +ants+:: list of ants
     # +colonies+:: list of colonies
-    attr_reader :creeps, :ants, :colonies
+    attr_reader :creeps, :ants, :colony_queue
 
     # Default host for DRb
     DRB_HOST = '127.0.0.1'
@@ -17,24 +17,21 @@ module AntHill
     # +config+:: Configuration object
     def initialize(config = Configuration.config)
       @config = config
-      @ants = []
-      @colony_queue = []
-      @colonies = []
       @drb_host = config.drb_host
       @drb_port = config.drb_port
-      @@mutex = Mutex.new
       trap("INT") do
         puts "Terminating... Pls wait"
         @creeps.each{|c|  c.kill_connections  }
         @threads.each{|th| th.exit  }
       end
       @active = true
-      @loaded_params = {}
+      @colony_queue = AntColonyQueue.new
+      @process_colony_queue = SynchronizedObject.new([], [:<<, :select, :shift, :each])
     end
 
     # Return ants size
     def size
-      @ants.size
+      @colony_queue.size
     end
 
     # Service method
@@ -53,19 +50,9 @@ module AntHill
 
     # Create colony
     # +params+:: params for colony
-    # +loaded_params+:: loaded params for respawning queen
-    def create_colony(params={}, loaded_params = nil)
-      type = params['type']
-      type = loaded_params[:params]['type'] if loaded_params
-      colony_class = @config.ant_colony_class(type)
-      if colony_class
-        colony = colony_class.new(params)
-        colony.from_hash(loaded_params) if loaded_params
-        @colony_queue << colony unless loaded_params
-        @colonies << colony
-      else
-        logger.error "Couldn't process request #{params} because of previous errors"
-      end
+    def create_colony(params={})
+      colony = @colony_queue.create_colony( params )
+      @process_colony_queue << colony
       colony
     end
 
@@ -74,22 +61,26 @@ module AntHill
     #   Example: [{'name' => 'creep1', 'host'=> 'hostname', 'user' => 'login_user', 'password' => 'user_password'}]
     def spawn_creeps(creeps)
       @creeps = []
-      loaded_params = @loaded_params[:creeps]
+      loaded_creeps = @loaded_creeps
       creeps.each do |creep_config|
-        creep_loaded = loaded_params && loaded_params.find{|cr| cr[:hill_cfg]['name'] == creep_config['name'] } || {}
-        add_creep(creep_config, creep_loaded)
+        loaded_creep = loaded_creeps.find{|c| c.name == creep_config['name'] } if loaded_creeps 
+        add_creep(creep_config, loaded_creep)
       end
+      @loaded_creeps=nil
     end
 
     # Adding new creep and creatinf thread for it
     # +creep_config+:: hash of params for creep
     #   Example: {'name' => 'creep1', 'host'=> 'hostname', 'user' => 'login_user', 'password' => 'user_password'}
     # +creep_loaded+:: creep loaded from saved file 
-    def add_creep(creep_config, creep_loaded={})
+    def add_creep(creep_config, creep_loaded=nil)
       @threads << Thread.new{
-        c = Creep.new
+        if creep_loaded
+          c = creep_loaded
+        else
+          c = Creep.new
+        end
         c.configure(creep_config)
-        c.from_hash(creep_loaded)
         @creeps << c
         Thread.current["name"]=c.to_s
         c.service
@@ -118,7 +109,7 @@ module AntHill
       @threads << Thread.new{
         begin 
           Thread.current["name"]="main"
-          DRb.start_service "druby://#{@drb_host || DRB_HOST}:#{@drb_port || DRB_PORT}", self
+          DRb.start_service "druby://#{@config.drb_host || DRB_HOST}:#{@config.drb_port || DRB_PORT}", self
           DRb.thread.join
         rescue => e
           logger.error "There was an error in drb_queen =(. Details: #{e}\n#{e.backtrace}"
@@ -133,59 +124,24 @@ module AntHill
         while true do
           if @active
             @colony_processor_busy = true
-            colony = @colony_queue.shift
-            if colony && !colony.killed?
-              new_ants = colony.get_ants
-              add_ants(new_ants) unless colony.killed?
+            @colony = @process_colony_queue.shift
+            if @colony && !@colony.killed?
+              @colony.get_ants
+              @colony_queue.add_colony(@colony) unless @colony.killed?
             end
+            @colony=nil
             @colony_processor_busy = false
           end
           sleep 1
         end
       }
     end
- 
-    # Add new ants to queue
-    def add_ants(ants)
-      @ants += ants
-    end
-    
-    # Find ant for creep
-    # +creep+:: creep to find ant
-    def find_ant(creep)
-      return nil if @ants.empty?
-      winner = nil
-      @@mutex.synchronize{
-        winner = max_priority_ant(creep)
-        @ants.delete(winner) if winner
-      }
-      winner
-    end
-
-    # Return ant with max priority for creep
-    # +creep+:: creep object
-    def max_priority_ant(creep)
-      max_ant = nil
-      max_priority =-Float::INFINITY
-      @ants.each do |a|
-        next if a.prior < max_priority
-        if (prior=a.priority_cache(creep)) > max_priority
-          max_priority = prior
-          max_ant = a
-        end
-      end
-      max_ant
-    rescue NoFreeConnectionError => e
-      logger.error "Couldn't find any free connection for creep #{creep}. #{e}: #{e.backtrace.join("\n")}"
-      creep.disable!
-      nil
-    end
 
     # Reset priority for specified creep for all ants
     def reset_priority_for_creep(creep)
-      @ants.each{|a| a.delete_cache_for_creep(creep)}
+      @colony_queue.reset_priority_for_creep(creep)
     end
-
+ 
     # Return logger for queen
     def logger
       Log.logger_for(:queen)
@@ -210,68 +166,53 @@ module AntHill
     # Find colonies for params
     # +params+:: hash of params to match colony
     def find_colonies(params)
-      @colonies.select do |colony| 
+      @process_colony_queue.select do |colony| 
         colony.is_it_me?(params)
       end
     end
+    private :find_colonies
 
-    # Kill colonies matching params
-    # +params+:: hash of params
+    def find_ant(creep)
+      @colony_queue.find_ant(creep)
+    end
+
     def kill_colony(params)
       if params.is_a?(AntColony)
         to_kill = [ params ]
       else
         to_kill = find_colonies(params)
       end
-      @@mutex.synchronize{
-        to_kill.each do |colony|
-          colony.kill
-          @ants.reject!{|ant|
-            ant.colony == colony
-          }
-          @colonies.delete(colony)
-        end
-      }
+      to_kill.each do |colony|
+        colony.kill
+        @colony_queue.delete_colony(colony)
+      end
     end
 
     # Save queen to file
     # +filename+:: filename to store queen data
     def save_queen(filename)
-      queen_hash = to_hash
-      File.open(filename, "w+") { |f| f.puts queen_hash.to_yaml}
+      File.open(filename, "w+") { |f| f.puts self.to_hash.to_yaml}
     end
 
-    # Restore queen from file
-    # +filename+:: filenme with queen data
-    def restore_queen(filename)
-      hash = YAML::load_file(filename)
-      @loaded_params = hash
-      from_hash(hash)
-    end
-
-    # Initialize queen from loaded hash
-    # +hash+:: queen hash
-    def from_hash(hash)
-      colonies = hash[:colonies]
-      tmp = {}
-      @config.from_hash(hash[:configuration])
-      colonies.each do |col|
-        colony = create_colony({},col)
-        tmp[col[:id]] = colony
-      end
-      @colonies.each{|c| add_ants(c.ants)}
-      @colony_queue = hash[:colony_queue].collect{|cq| tmp[cq]}
-    end
-
-    # Convert queen to hash
-    # +include_finished+:: should finished colonies and ants be includes to hash?
-    def to_hash(include_finished = false)
-      {
-        :colonies => @colonies.collect{|ac| ac.to_hash(include_finished) },
-        :colony_queue => @colony_queue.collect{|ac| ac.object_id },
-        :creeps => @creeps.collect{|c| c.to_hash },
-        :configuration => @config.to_hash 
+    def to_hash
+      {}.tap{ |codder|
+        codder['process_colony_queue'] = @process_colony_queue.collect{|colony| colony.to_hash }
+        codder['colony_queue'] = @colony_queue.to_hash
+        codder['creeps'] = @creeps.collect{|creep| creep.to_hash}
+        codder['current_colony'] = @colony.to_hash if @colony
       }
+    end
+
+    def from_hash(codder)
+      @colony_queue = AntColonyQueue.new.tap{ |acq| acq.from_hash(codder['colony_queue']) }
+      process_colony_queue = codder['process_colony_queue']
+      process_colony_queue << codder['current_colony'] if codder['current_colony']
+      @process_colony_queue = codder['process_colony_queue'].collect{|colony_hash| @colony_queue.create_colony({},colony_hash)}
+      @loaded_creeps = codder['creeps'].collect{|creep_hash| Creep.new(self).tap{|creep| creep.from_hash(creep_hash)}}
+    end
+
+    # Depricated method. Stub it for backward compatibility
+    def add_ants(*args)
     end
 
     # Check if queen is active
@@ -284,9 +225,20 @@ module AntHill
         @@mutex.locked?
       end
 
+
       # Return or create current queen
-      def queen
+      def queen(config_filename=nil)
+        Configuration.config(config_filename) if config_filename
         @@queen ||= self.new
+      end
+
+      # Restore queen from file
+      # +filename+:: filenme with queen data
+      def restore(config_file, queen_save_file)
+        Configuration.config(config_file)
+        hash = YAML::load_file(queen_save_file)
+        @@queen = Queen.new
+        @@queen.tap{|q| q.from_hash(hash)}
       end
 
       # Connect to DRb interface of queen
