@@ -17,7 +17,7 @@ module AntHill
       @params = params
       @config = config
       @created_at = Time.now
-      @ants = SynchronizedObject.new([], [:<<, :concat, :collect, :select, :count, :each, :all?, :empty?])
+      @ants = SynchronizedObject.new([], [:<<, :concat, :collect, :select, :count, :each])
       @started = false
     end
 
