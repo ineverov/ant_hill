@@ -166,7 +166,8 @@ module AntHill
     # Find colonies for params
     # +params+:: hash of params to match colony
     def find_colonies(params)
-      (@process_colony_queue+@colony_queue.colonies).select do |colony| 
+      #Searcch queued colonies,not processed yet  and pocessing one
+      (@process_colony_queue+@colony_queue.colonies+[@colony]).select do |colony| 
         colony.is_it_me?(params)
       end
     end
