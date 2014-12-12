@@ -166,11 +166,12 @@ module AntHill
     # Find colonies for params
     # +params+:: hash of params to match colony
     def find_colonies(params)
-      @process_colony_queue.select do |colony| 
-        colony.is_it_me?(params)
+      #Searcch queued colonies,not processed yet  and pocessing one
+      (@process_colony_queue+@colony_queue.colonies+[@colony]).select do |colony| 
+        colony && colony.is_it_me?(params)
       end
     end
-    private :find_colonies
+    public :find_colonies
 
     def find_ant(creep)
       @colony_queue.find_ant(creep)

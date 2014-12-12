@@ -191,9 +191,11 @@ module AntHill
 
     # Mark all unprocessed ants as finished
     def kill
-      @status = :killed
-      ants.each do |ant|
-        ant.kill
+      unless killed? 
+        @status = :killed
+        ants.each do |ant|
+          ant.kill
+        end
       end
     end
 
