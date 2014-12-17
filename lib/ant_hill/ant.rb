@@ -93,6 +93,7 @@ module AntHill
     def from_hash(codder)
       @type = codder['type']
       @status = codder['status']
+      @marked = codder['marked'] || false
       @execution_status = codder['execution_status']
       @prior = codder['prior']
       @output = codder['output']
@@ -105,6 +106,7 @@ module AntHill
         codder['type'] = @type
         codder['params'] = diff_with_colony
         codder['status'] = @status
+        codder['marked'] = @marked
         codder['execution_status'] = @execution_status
         codder['prior'] = @prior
         codder['output'] = @output
