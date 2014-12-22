@@ -171,7 +171,6 @@ module AntHill
         colony && colony.is_it_me?(params)
       end
     end
-    public :find_colonies
 
     def find_ant(creep)
       @colony_queue.find_ant(creep)

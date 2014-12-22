@@ -193,9 +193,7 @@ module AntHill
     def kill
       unless killed? 
         @status = :killed
-        ants.each do |ant|
-          ant.kill
-        end
+        ants.each(&:kill)
       end
     end
 
